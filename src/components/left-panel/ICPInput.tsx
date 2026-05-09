@@ -72,8 +72,28 @@ export function ICPInput() {
 
       dispatch({ type: "SET_SEARCH_PLAN", plan: searchPlan });
       dispatch({ type: "SET_STAGE", stage: "analyzing_icp", status: "completed" });
-      dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "running" });
-      addLog("awaiting_plan_approval", "Search plan generated. Awaiting user approval before discovery.");
+      dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "completed" });
+      addLog("awaiting_plan_approval", "Search plan auto-approved.");
+
+      // Auto-proceed to discovery in demo mode
+      dispatch({ type: "SET_STAGE", stage: "discovering", status: "running" });
+      addLog("discovering", DEMO_SCENARIO.narrativeLabels.discovery);
+
+      await new Promise((r) => setTimeout(r, 800));
+
+      dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
+      dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "completed" });
+      addLog("collecting_evidence", DEMO_SCENARIO.narrativeLabels.evidenceCollection);
+      dispatch({ type: "SET_STAGE", stage: "enriching", status: "completed" });
+      dispatch({ type: "SET_STAGE", stage: "scoring", status: "completed" });
+      addLog("scoring", DEMO_SCENARIO.narrativeLabels.scoring);
+      dispatch({ type: "SET_STAGE", stage: "matching_personas", status: "completed" });
+      dispatch({ type: "SET_STAGE", stage: "generating_brief", status: "completed" });
+      dispatch({ type: "SET_STAGE", stage: "generating_outreach", status: "completed" });
+      dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
+
+      const accounts = getDemoAccounts();
+      dispatch({ type: "SET_ACCOUNTS", accounts });
 
       setIsSubmitting(false);
     } else {
