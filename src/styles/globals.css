@@ -4,18 +4,18 @@
 
 @layer base {
   body {
-    @apply bg-surface text-gray-100 antialiased;
+    @apply bg-surface text-gray-100 antialiased font-sans;
   }
 
-  /* Scrollbar styling for dark theme */
+  /* Premium scrollbar */
   ::-webkit-scrollbar {
-    @apply w-2;
+    @apply w-1.5;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-surface;
+    @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-700 rounded-full;
+    @apply bg-gray-700/50 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-600;
@@ -28,40 +28,53 @@
   }
 
   .panel-glass {
-    @apply bg-surface-raised/80 border-white/5;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    @apply bg-surface-raised/80;
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
 
   .panel-header {
-    @apply px-4 py-3 border-b border-gray-800 font-semibold text-sm text-gray-300;
+    @apply px-4 py-3 border-b border-white/5 font-semibold text-sm text-gray-300;
   }
 
+  /* Buttons */
   .btn-primary {
-    @apply bg-brand-600 hover:bg-brand-700 disabled:bg-gray-700 disabled:text-gray-500
-           text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm;
+    @apply bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600
+           disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500
+           text-white font-medium px-4 py-2 rounded-lg transition-all text-sm
+           hover:scale-[1.02] active:scale-[0.98] shadow-sm;
   }
 
   .btn-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-gray-200
-           font-medium px-4 py-2 rounded-lg transition-colors text-sm;
+    @apply bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white
+           font-medium px-4 py-2 rounded-lg transition-all text-sm
+           border border-gray-700 hover:border-gray-600;
   }
 
+  .btn-ghost {
+    @apply text-gray-400 hover:text-white hover:bg-white/5
+           font-medium px-3 py-1.5 rounded-lg transition-all text-xs;
+  }
+
+  /* Inputs */
   .input-field {
-    @apply w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
-           text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none
-           focus:ring-1 focus:ring-brand-500/50 text-sm;
+    @apply w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-3 py-2.5
+           text-white placeholder-gray-500 text-sm
+           focus:border-brand-500/50 focus:outline-none focus:ring-2 focus:ring-brand-500/20
+           transition-all;
   }
 
+  /* Badges */
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium;
   }
 
   .badge-green {
-    @apply badge bg-green-500/10 text-green-400 border border-green-500/20;
+    @apply badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
   }
 
   .badge-yellow {
-    @apply badge bg-yellow-500/10 text-yellow-400 border border-yellow-500/20;
+    @apply badge bg-amber-500/10 text-amber-400 border border-amber-500/20;
   }
 
   .badge-gray {
@@ -69,10 +82,49 @@
   }
 
   .badge-blue {
-    @apply badge bg-blue-500/10 text-blue-300 border border-blue-500/20;
+    @apply badge bg-brand-500/10 text-brand-400 border border-brand-500/20;
   }
 
   .badge-red {
-    @apply badge bg-red-500/10 text-red-400 border border-red-500/20;
+    @apply badge bg-rose-500/10 text-rose-400 border border-rose-500/20;
+  }
+
+  .badge-cyan {
+    @apply badge bg-cyan-500/10 text-cyan-400 border border-cyan-500/20;
+  }
+
+  /* Score display */
+  .score-ring {
+    @apply relative inline-flex items-center justify-center;
+  }
+
+  /* Cards */
+  .card-elevated {
+    @apply bg-gray-800/30 rounded-xl border border-white/5 p-4
+           shadow-sm transition-all;
+  }
+
+  .card-elevated:hover {
+    @apply border-white/10 bg-gray-800/50;
+  }
+
+  .card-selected {
+    @apply border-brand-500/30 bg-brand-500/5 shadow-glow;
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: fadeSlideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
