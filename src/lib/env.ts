@@ -16,6 +16,8 @@ export interface EnvConfig {
 }
 
 export function getEnvConfig(): EnvConfig {
+  assertServerSide();
+
   const apifyApiKey = process.env.APIFY_API_KEY || null;
   const llmApiKey = process.env.LLM_API_KEY || null;
   const llmProvider = (process.env.LLM_PROVIDER as "openai" | "anthropic") || null;

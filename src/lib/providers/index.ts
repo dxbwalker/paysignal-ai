@@ -67,17 +67,14 @@ export function createProviders(): ProviderSet {
         })
       );
 
-      const enrichedAccounts = enriched.map((r) =>
-        r.status === "fulfilled" ? r.value : accounts[0]
-      );
+      const enrichedById = new Map<string, Account>();
+      for (const result of enriched) {
+        if (result.status === "fulfilled") {
+          enrichedById.set(result.value.id, result.value);
+        }
+      }
 
-      // Merge enriched back into full list
-      const enrichedIds = new Set(top5.map((a) => a.id));
-      return accounts.map((a) =>
-        enrichedIds.has(a.id)
-          ? enrichedAccounts.find((e) => e.id === a.id) || a
-          : a
-      );
+      return accounts.map((a) => enrichedById.get(a.id) ?? a);
     },
 
     async enrichSingle(account: Account, mode: Mode): Promise<EvidenceCard[]> {

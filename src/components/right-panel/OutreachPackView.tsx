@@ -1,0 +1,162 @@
+import type { Account } from "@/types";
+import { useState } from "react";
+
+type Channel = "email" | "linkedin" | "call" | "followup" | "questions";
+
+export function OutreachPackView({ account }: { account: Account }) {
+  const pack = account.outreachPack;
+  const [activeChannel, setActiveChannel] = useState<Channel>("email");
+
+  if (!pack) {
+    if (account.opportunityScore && account.opportunityScore.total < 60) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-sm">
+            Outreach not generated for accounts below score 60.
+          </p>
+        </div>
+      );
+    }
+    return <p className="text-gray-500 text-sm">No outreach pack available.</p>;
+  }
+
+  const channels: { id: Channel; label: string }[] = [
+    { id: "email", label: "Email" },
+    { id: "linkedin", label: "LinkedIn" },
+    { id: "call", label: "Call" },
+    { id: "followup", label: "Follow-up" },
+    { id: "questions", label: "Questions" },
+  ];
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Why this account */}
+      <div className="bg-brand-600/5 border border-brand-500/20 rounded-lg p-3">
+        <h4 className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">
+          Why This Account, Why Now
+        </h4>
+        <p className="text-xs text-gray-300">{pack.whyThisAccountWhyNow}</p>
+      </div>
+
+      {/* Channel tabs */}
+      <div className="flex gap-1 bg-gray-800/50 rounded-lg p-1">
+        {channels.map((ch) => (
+          <button
+            key={ch.id}
+            onClick={() => setActiveChannel(ch.id)}
+            className={`flex-1 text-[10px] py-1.5 rounded font-medium transition-colors ${
+              activeChannel === ch.id
+                ? "bg-gray-700 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            {ch.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Channel content */}
+      <div className="bg-gray-800/30 rounded-lg p-4">
+        {activeChannel === "email" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-gray-500">
+                Subject: <span className="text-gray-300">{pack.email.subject}</span>
+              </p>
+              <button
+                onClick={() => copyToClipboard(`Subject: ${pack.email.subject}\n\n${pack.email.body}`)}
+                className="text-[10px] text-brand-400 hover:text-brand-300"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="border-t border-gray-700/50 pt-2">
+              <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {pack.email.body}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeChannel === "linkedin" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Connection message</span>
+              <button
+                onClick={() => copyToClipboard(pack.linkedinMessage)}
+                className="text-[10px] text-brand-400 hover:text-brand-300"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-xs text-gray-300 leading-relaxed">{pack.linkedinMessage}</p>
+          </div>
+        )}
+
+        {activeChannel === "call" && (
+          <div className="space-y-2">
+            <span className="text-[10px] text-gray-500">Talking points</span>
+            <ol className="space-y-2">
+              {pack.callOpener.talkingPoints.map((tp, i) => (
+                <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                  <span className="text-brand-400 font-mono">{i + 1}.</span>
+                  {tp}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {activeChannel === "followup" && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Follow-up message</span>
+              <button
+                onClick={() => copyToClipboard(pack.followUp)}
+                className="text-[10px] text-brand-400 hover:text-brand-300"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {pack.followUp}
+            </p>
+          </div>
+        )}
+
+        {activeChannel === "questions" && (
+          <div className="space-y-2">
+            <span className="text-[10px] text-gray-500">Discovery questions</span>
+            <ol className="space-y-2">
+              {pack.discoveryQuestions.map((q, i) => (
+                <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                  <span className="text-brand-400 font-mono">{i + 1}.</span>
+                  {q}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
+
+      {/* Evidence traceability */}
+      <div className="text-[10px] text-gray-600">
+        References {pack.claimEvidenceIds.length} evidence card(s): {pack.claimEvidenceIds.join(", ")}
+      </div>
+
+      {/* Export */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => copyToClipboard(JSON.stringify(pack, null, 2))}
+          className="btn-secondary text-[10px] px-2 py-1"
+        >
+          📋 Export JSON
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -119,6 +119,7 @@ export interface EvidenceCard {
   whyItMatters: string;
   suggestedOutreachAngle: string;
   dimension: ScoringDimension;
+  claimEvidenceIds?: string[]; // outreach traceability: IDs of claims referencing this evidence
 }
 
 export interface DimensionScore {
@@ -231,8 +232,8 @@ export interface CampaignOutcome {
 
 export interface CampaignFeedback {
   totalDiscovered: number;
-  engagedByChannel: Record<string, number>;
-  outcomeBreakdown: Record<OutcomeType, number>;
+  engagedByChannel: Record<"email" | "linkedin" | "call" | "other", number>;
+  outcomeBreakdown: Partial<Record<OutcomeType, number>>;
   topSignals: string[]; // top 3 associated with positive outcomes
   bottomSignals: string[]; // bottom 3 associated with negative outcomes
   icpRefinements: string[];
