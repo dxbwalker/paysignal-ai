@@ -50,8 +50,8 @@ export function createApifyProvider(): ApifyProvider {
         profileScraperMode: "Short",
         searchQuery,
         currentJobTitles: jobTitles.slice(0, 5),
-        maxItems: 20,
-        takePages: 1,
+        maxItems: 50,
+        takePages: 2,
       };
 
       // Add location filter — skip vague terms like "International", "Global"
@@ -122,22 +122,22 @@ function normalizeLinkedInProfiles(data: any[]): Account[] {
     // Get company from currentPositions (Short mode uses plural)
     const currentPos = profile.currentPositions?.[0] || profile.currentPosition?.[0];
     const companyName = currentPos?.companyName || "";
+    const personName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
 
-    if (!companyName) {
-      // No company — skip for account normalization
-      continue;
-    }
+    // Use company if available, otherwise use person as the account
+    const accountName = companyName || personName;
+    if (!accountName) continue;
 
-    const key = companyName.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ");
+    const key = accountName.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ");
 
     if (!companyMap.has(key)) {
       companyMap.set(key, {
         account: {
-          name: companyName,
+          name: accountName,
           location: profile.location?.linkedinText || profile.location?.parsed?.text || (typeof profile.location === "string" ? profile.location : ""),
           linkedinUrl: currentPos?.companyLinkedinUrl || undefined,
-          businessModel: classifyBusinessModel(companyName, {
-            title: currentPos?.title || profile.headline || "",
+          businessModel: classifyBusinessModel(accountName, {
+            title: currentPos?.title || profile.headline || profile.summary || "",
             headline: profile.headline || profile.summary || "",
             industry: "",
           }),
