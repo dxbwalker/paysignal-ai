@@ -12,8 +12,8 @@
 
 import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
 
-const ACTOR_ID = "harvestapi~linkedin-profile-search";
-const TIMEOUT_MS = 90_000; // LinkedIn search can take longer
+const ACTOR_ID = "apify~google-search-scraper";
+const TIMEOUT_MS = 90_000;
 
 export interface ApifyDiscoverResult {
   accounts: Account[];
@@ -35,32 +35,23 @@ export function createApifyProvider(): ApifyProvider {
     },
 
     async discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult> {
-      // Build LinkedIn-optimized search input
-      // Use persona targets as job titles, keywords as general search
-      const jobTitles = searchPlan.personaTargets.length > 0
-        ? searchPlan.personaTargets
-        : ["Head of Payments", "Payment Operations Manager", "VP Finance", "CFO"];
+      // Use Google Search to find LinkedIn profiles
+      const titles = searchPlan.personaTargets.length > 0
+        ? searchPlan.personaTargets.slice(0, 2).join(" OR ")
+        : "Head of Payments OR Payment Operations";
 
-      const searchQuery = searchPlan.keywords
-        .filter((k) => !/head|vp|director|manager|chief|cfo|coo/i.test(k))
-        .slice(0, 3)
-        .join(" ") || "payments fintech";
-
-      const actorInput: Record<string, any> = {
-        profileScraperMode: "Short",
-        searchQuery,
-        currentJobTitles: jobTitles.slice(0, 5),
-        maxItems: 50,
-        takePages: 2,
-      };
-
-      // Add location filter — skip vague terms like "International", "Global"
-      const validLocations = searchPlan.geographicFilters.filter(
+      const geo = searchPlan.geographicFilters.filter(
         (loc) => !/international|global|cross-border|remote/i.test(loc)
-      );
-      if (validLocations.length > 0) {
-        actorInput.locations = validLocations;
-      }
+      )[0] || "";
+
+      const query = `site:linkedin.com/in ${titles} ${geo}`.trim();
+
+      const actorInput = {
+        queries: query,
+        maxPagesPerQuery: 1,
+        resultsPerPage: 20,
+        mobileResults: false,
+      };
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -79,27 +70,27 @@ export function createApifyProvider(): ApifyProvider {
         clearTimeout(timeout);
 
         if (!response.ok) {
-          return {
-            accounts: [],
-            error: `Apify API error: ${response.status}`,
-          };
+          return { accounts: [], error: `Apify API error: ${response.status}` };
         }
 
         const data = await response.json();
 
-        // harvestapi returns array of LinkedIn profiles directly
-        const accounts = normalizeLinkedInProfiles(data);
+        // Google Search returns array with organicResults
+        let results: any[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+          results = data[0]?.organicResults || data;
+        }
+
+        if (!Array.isArray(results) || results.length === 0) {
+          return { accounts: [], error: "No results returned" };
+        }
+
+        const accounts = normalizeGoogleSearchResults(results);
         return { accounts: deduplicateAccounts(accounts) };
       } catch (error) {
         clearTimeout(timeout);
         const message = error instanceof Error ? error.message : "Unknown error";
-        const isTimeout = message.includes("abort");
-        return {
-          accounts: [],
-          error: isTimeout
-            ? "Apify API timed out after 90s"
-            : `Apify API failed: ${message}`,
-        };
+        return { accounts: [], error: message.includes("abort") ? "Apify timed out" : `Apify failed: ${message}` };
       }
     },
   };

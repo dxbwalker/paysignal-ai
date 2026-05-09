@@ -62,6 +62,15 @@ export default async function handler(
     const duplicates = result.accounts.filter((a) => a.possibleDuplicate).length;
     const dedupNote = duplicates > 0 ? ` ${duplicates} flagged as possible duplicates.` : "";
 
+    // Store in MongoDB for future retrieval
+    try {
+      const { createMongoDBProvider } = await import("@/lib/providers/mongodb");
+      const mongo = createMongoDBProvider();
+      if (mongo.isEnabled()) {
+        await mongo.saveAccounts("live-discovery", result.accounts);
+      }
+    } catch { /* non-blocking */ }
+
     return res.status(200).json({
       accounts: result.accounts,
       logEntry: `Discovered ${result.accounts.length} accounts from LinkedIn via Apify. Classified: ${modelSummary}.${dedupNote}`,
