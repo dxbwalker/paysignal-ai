@@ -35,32 +35,28 @@ export function createApifyProvider(): ApifyProvider {
     },
 
     async discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult> {
-      // Use harvestapi/linkedin-profile-search with job title + location filters
+      // Build LinkedIn-optimized search input
+      // Use persona targets as job titles, keywords as general search
+      const jobTitles = searchPlan.personaTargets.length > 0
+        ? searchPlan.personaTargets
+        : ["Head of Payments", "Payment Operations Manager", "VP Finance", "CFO"];
+
+      const searchQuery = searchPlan.keywords
+        .filter((k) => !/head|vp|director|manager|chief|cfo|coo/i.test(k))
+        .slice(0, 3)
+        .join(" ") || "payments fintech";
+
       const actorInput: Record<string, any> = {
-        searchQuery: searchPlan.keywords.join(" "),
         profileScraperMode: "Short",
-        takePages: 2,
-        maxItems: 25,
+        searchQuery,
+        currentJobTitles: jobTitles.slice(0, 5),
+        maxItems: 20,
+        takePages: 1,
       };
 
-      // Add location filter if available
+      // Add location filter
       if (searchPlan.geographicFilters.length > 0) {
         actorInput.locations = searchPlan.geographicFilters;
-      }
-
-      // Add job title filter from keywords that look like titles
-      const titleKeywords = searchPlan.keywords.filter((k) =>
-        /head|vp|director|manager|chief|cfo|coo|lead/i.test(k)
-      );
-      if (titleKeywords.length > 0) {
-        actorInput.currentJobTitles = titleKeywords;
-        // Use remaining keywords as general search
-        const remaining = searchPlan.keywords.filter((k) => !titleKeywords.includes(k));
-        if (remaining.length > 0) {
-          actorInput.searchQuery = remaining.join(" ");
-        } else {
-          actorInput.searchQuery = titleKeywords[0];
-        }
       }
 
       const controller = new AbortController();
