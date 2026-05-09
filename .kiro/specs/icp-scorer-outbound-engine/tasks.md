@@ -299,50 +299,136 @@
 
 **Core principle:** The product should feel like the agent is guiding the user — recommending, sequencing, and adapting — not like a human manually reading through content tabs.
 
-**Build order:** Resizable layout → Design tokens → Account list + score visuals → Outreach strategy types → Agent Outreach UI → Validation
+**Build order:** MongoDB persistence foundation → Resizable layout → Design tokens → Account list + score visuals → Outreach strategy types → Agent Outreach UI → MongoDB campaign memory → MongoDB vector search → Validation
 
 ---
 
-### Task 19.5: MongoDB Atlas Integration (Persistence + Vector Search)
+### Task 19.5: MongoDB Atlas Persistence Foundation
 
-**Why:** Replaces fragile localStorage with production-grade persistence. Adds semantic ICP matching via Atlas Vector Search — makes the product feel AI-native rather than keyword-based.
+**Objective:** Add production-grade persistence without breaking the current no-key Demo Mode. MongoDB persists campaigns, accounts, evidence, outreach strategies, and outcomes. The app continues working with localStorage when MongoDB is unavailable, slow, disabled, or misconfigured.
 
-**Cluster:** M10 Dedicated, AWS London, MongoDB 8.0.23, Vector Search index already configured on `duecourse.corpus_chunks` collection.
+- [ ] 1. Install MongoDB driver: `npm install mongodb`
+- [ ] 2. Add environment variables to `src/lib/env.ts`: `MONGODB_URI`, `MONGODB_DB_NAME` (default: `paysignal`), `MONGODB_ENABLE_PERSISTENCE` (default: `false`), `MONGODB_MODEL_API_KEY` (optional, for semantic memory)
+- [ ] 3. Create `src/lib/mongodb.ts` — server-only connection singleton:
+  - Reuse connection across serverless invocations (module-level cached client)
+  - Throw if imported client-side
+  - Redact connection details from logs
+  - Use lazy connection: only connect when persistence is enabled and first write/read occurs
+- [ ] 4. Define collections: `campaigns`, `accounts`, `evidence_cards`, `strategies`, `campaign_outcomes`, `icp_embeddings`
+- [ ] 5. Add typed collection accessors: `getCampaignsCollection()`, `getAccountsCollection()`, `getEvidenceCardsCollection()`, `getStrategiesCollection()`, `getCampaignOutcomesCollection()`, `getIcpEmbeddingsCollection()`
+- [ ] 6. Add indexes:
+  - `campaigns`: `{ campaignId: 1 }`, `{ createdAt: -1 }`
+  - `accounts`: `{ campaignId: 1, id: 1 }`
+  - `evidence_cards`: `{ campaignId: 1, accountId: 1 }`
+  - `strategies`: `{ campaignId: 1, accountId: 1 }`
+  - `campaign_outcomes`: `{ campaignId: 1, accountId: 1, createdAt: -1 }`
+  - `icp_embeddings`: vector index only if semantic memory is enabled later
+- [ ] 7. Add `campaignId: string` to WorkflowState, generate UUID at workflow start
+- [ ] 8. Attach `campaignId` to accounts, evidence cards, strategies, outcomes, and feedback when persisting
+- [ ] 9. Create `src/lib/providers/mongodb.ts` with:
+  - `saveCampaign(campaign)` — upsert campaign metadata
+  - `saveAccounts(campaignId, accounts)` — bulk upsert accounts by ID
+  - `saveEvidenceCards(campaignId, accountId, evidenceCards)` — persist evidence
+  - `saveStrategy(campaignId, strategy)` — persist outreach strategy
+  - `saveCampaignOutcome(campaignId, outcome)` — persist feedback
+  - `loadCampaign(campaignId)` — retrieve full campaign state
+  - `deleteCampaign(campaignId)` — remove campaign data
+- [ ] 10. Add non-blocking persistence to `workflow-runner.ts`:
+  - Persist after scoring completes
+  - Persist after strategy generation
+  - Persist after campaign outcome changes
+  - Never delay UI rendering — fire-and-forget with 3-second timeout
+  - If write fails, log warning and continue
+- [ ] 11. Create API routes:
+  - `src/pages/api/persist-campaign.ts` — saves current workflow state
+  - `src/pages/api/load-campaign.ts` — loads a saved campaign
+  - `src/pages/api/delete-campaign.ts` — removes a campaign
+- [ ] 12. Add visible save status indicator in the UI (small pill near mode toggle):
+  - "Saved to Atlas" (green) — when persistence succeeds
+  - "Local only" (gray) — when MongoDB is not configured
+  - "Save failed — demo continues" (amber) — when write fails
+- [ ] 13. **Fallback rule:** If MongoDB is unavailable, slow, disabled, or misconfigured, the app continues with localStorage and Demo Mode. MongoDB must never block the demo.
+- [ ] 14. Update clear-data behaviour: clear local cache AND offer campaign deletion through API if MongoDB campaign is loaded
 
-- [ ] 1. Install `mongodb` driver: `npm install mongodb`
-- [ ] 2. Create `src/lib/mongodb.ts` — connection singleton (reuses connection across serverless invocations):
-  - Connect using `MONGODB_URI` env var
-  - Database: `paysignal`
-  - Collections: `accounts`, `campaigns`, `strategies`, `icp_embeddings`
-  - Export typed collection accessors
-- [ ] 3. Create `src/lib/providers/mongodb.ts` — MongoDB provider adapter:
-  - `saveAccounts(accounts: Account[])` — upsert accounts by ID
-  - `getAccounts(campaignId: string)` — retrieve all accounts for a campaign
-  - `saveStrategy(strategy: OutreachStrategy)` — persist outreach strategy
-  - `saveCampaignOutcome(outcome: CampaignOutcome)` — persist feedback
-  - `getCampaignFeedback(campaignId: string)` — aggregate outcomes
-- [ ] 4. Create `src/lib/embeddings.ts` — generate embeddings via MongoDB AI Models API or OpenAI:
-  - `embedText(text: string)` → returns float[] vector
-  - Use MongoDB Model API key (`MONGODB_MODEL_API_KEY`) or fall back to OpenAI embeddings
-  - Cache embeddings to avoid redundant API calls
-- [ ] 5. Create vector search function `findSimilarAccounts(icpEmbedding: float[], limit: number)`:
-  - Uses Atlas Vector Search on `icp_embeddings` collection
-  - Returns semantically similar past ICP → account mappings
-  - Enables "accounts similar to ones that worked before" feature
-- [ ] 6. Create `src/pages/api/persist-accounts.ts` — saves workflow results to MongoDB after scoring completes
-- [ ] 7. Create `src/pages/api/load-campaign.ts` — loads a saved campaign from MongoDB (enables "resume previous campaign" feature)
-- [ ] 8. Update `src/lib/env.ts` — add `MONGODB_URI` and `MONGODB_MODEL_API_KEY` to env config, with graceful fallback to localStorage when MongoDB is unavailable
-- [ ] 9. Update workflow-runner: after scoring completes, persist accounts + strategies to MongoDB (non-blocking, don't delay the UI)
-- [ ] 10. **Fallback rule:** If MongoDB is unavailable, the app continues working with localStorage only. MongoDB is an enhancement, not a requirement.
+**Acceptance criteria:**
+- App works with no MongoDB config (no env vars set)
+- App works with invalid MONGODB_URI
+- App works when MongoDB is slow/unavailable
+- No MongoDB secrets exposed client-side
+- Campaign data persists when MongoDB is enabled
+- Saved campaign can be loaded again
+- Current demo flow still works without any API keys
+- MongoDB writes timeout after 3 seconds without blocking UI
 
-**Demo value:**
-- "Our data persists in MongoDB Atlas — this isn't a toy localStorage demo"
-- "We use vector search to find semantically similar accounts to past successful campaigns"
-- Shows production-readiness to judges
-
-**Files to create:** `src/lib/mongodb.ts`, `src/lib/providers/mongodb.ts`, `src/lib/embeddings.ts`, `src/pages/api/persist-accounts.ts`, `src/pages/api/load-campaign.ts`
-**Files to modify:** `src/lib/env.ts`, `src/lib/workflow-runner.ts`
+**Files to create:** `src/lib/mongodb.ts`, `src/lib/providers/mongodb.ts`, `src/pages/api/persist-campaign.ts`, `src/pages/api/load-campaign.ts`, `src/pages/api/delete-campaign.ts`
+**Files to modify:** `src/lib/env.ts`, `src/lib/workflow-runner.ts`, `src/context/WorkflowContext.tsx`
 **New dependencies:** `mongodb`
+
+---
+
+### Task 19.6: MongoDB Campaign Memory
+
+**Objective:** Make MongoDB visible in the product story — users can resume previous campaigns and reuse previous learning.
+
+- [ ] 1. Create `src/lib/campaign-memory.ts`:
+  - `saveCampaignSnapshot()` — called after workflow completion
+  - `loadCampaignSnapshot(campaignId)` — restores full state
+  - `listRecentCampaigns(limit = 10)` — returns campaign summaries
+- [ ] 2. When a campaign is loaded, restore: ICP, Search Plan, accounts, scores, evidence cards, personas, strategies, outcomes, feedback
+- [ ] 3. Add "Recent Campaigns" lightweight UI in the left panel (below mode toggle):
+  - Shows last 3-5 campaigns with ICP summary and account count
+  - Click to load/resume
+- [ ] 4. Add "Resume previous campaign" button
+- [ ] 5. Add "Save campaign" explicit action (even if auto-save is enabled)
+- [ ] 6. Add activity log entries:
+  - "I saved this campaign to MongoDB Atlas so it can be resumed later."
+  - "I loaded a previous campaign with 5 accounts and 3 outreach-ready opportunities."
+- [ ] 7. Create `src/pages/api/list-campaigns.ts` — returns recent campaign summaries
+
+**Acceptance criteria:**
+- User can save and resume a campaign
+- Loading a campaign restores the visible UI state
+- Campaign memory is clearly optional
+- Demo Mode still works if campaign memory fails
+
+**Files to create:** `src/lib/campaign-memory.ts`, `src/pages/api/list-campaigns.ts`
+**Files to modify:** `src/components/left-panel/ICPInput.tsx` (add recent campaigns section)
+
+---
+
+### Task 19.7: Atlas Vector Search / Semantic ICP Memory
+
+**Objective:** Add a credible AI-native story — PaySignal compares new ICPs against previous successful campaigns and recommends similar account patterns. Implement AFTER basic persistence is stable.
+
+- [ ] 1. Resolve vector index namespace: create a new vector index on `paysignal.icp_embeddings` collection (do NOT use the existing `duecourse.corpus_chunks` index unless intentional)
+- [ ] 2. Create `src/lib/embeddings.ts`:
+  - `embedText(text: string): Promise<number[]>`
+  - Provider abstraction: use MongoDB Model API key (`MONGODB_MODEL_API_KEY`) or fall back to OpenAI embeddings
+  - Fall back gracefully if no embedding provider is available
+  - Cache embeddings to avoid redundant API calls
+- [ ] 3. Add env vars: `EMBEDDINGS_PROVIDER`, `EMBEDDINGS_API_KEY`, `MONGODB_VECTOR_SEARCH_ENABLED`
+- [ ] 4. Store ICP embedding records: `{ campaignId, icpText, searchPlan, embedding, positiveSignals, winningAccountIds, createdAt }`
+- [ ] 5. Seed at least 5 historical campaign-memory records for demo (ICP text, account patterns, positive outcomes, signal patterns)
+- [ ] 6. Create `findSimilarCampaigns(icpText, limit)`:
+  - Embed current ICP
+  - Run Atlas Vector Search ($vectorSearch aggregation)
+  - Return similar campaigns and successful signal patterns
+- [ ] 7. Create `recommendFromMemory(icpText)`:
+  - Returns suggested keywords, business models, personas that worked before, signals associated with positive outcomes
+- [ ] 8. Add UI card in Search Plan area: "Similar successful campaigns found" — "Past winners had marketplace payouts, reconciliation pressure, and payment ops hiring"
+- [ ] 9. Add activity log entry: "I found 3 similar past campaigns. Marketplace payouts and payment ops hiring were the strongest success signals."
+- [ ] 10. **Fallback rule:** If vector search fails, do not block workflow. Hide semantic memory card or show "Semantic memory unavailable". Continue with existing Search Plan.
+
+**Acceptance criteria:**
+- Vector search is optional and gracefully hidden if unavailable
+- Uses the correct indexed collection (not someone else's collection)
+- Has seeded data so demo produces meaningful results
+- Never blocks the core workflow
+- Produces a visible, understandable product insight
+- Falls back cleanly when embedding API or vector index is unavailable
+
+**Files to create:** `src/lib/embeddings.ts`, `src/lib/semantic-memory.ts`
+**Files to modify:** `src/lib/env.ts`, `src/components/left-panel/SearchPlanEditor.tsx`
 
 ---
 
@@ -400,10 +486,46 @@
 
 ### Task 23: Agentic Outreach Strategy (Types + Generation)
 - [ ] 1. Add new types to `src/types/index.ts`: `OutreachStrategy`, `OutreachSequenceStep`, `OutreachSequenceStepStatus`
+```typescript
+interface OutreachStrategy {
+  id: string;
+  campaignId?: string;
+  accountId: string;
+  primaryPersonaId?: string;
+  recommendedPersonaTitle: string;
+  recommendedChannel: "linkedin" | "email" | "call" | "follow_up";
+  recommendedAngle: string;
+  rationale: string;
+  nextBestAction: string;
+  sequence: OutreachSequenceStep[];
+  successHypothesis: string;
+  risks: string[];
+  fallbackPlan: string;
+  confidence: ConfidenceLevel;
+  generatedAt: string;
+}
+
+interface OutreachSequenceStep {
+  id: string;
+  personaId?: string;
+  dayOffset: number;
+  channel: "linkedin" | "email" | "call" | "follow_up";
+  objective: string;
+  message: string;
+  claimEvidenceIds: string[];
+  status: OutreachSequenceStepStatus;
+  outcomeId?: string;
+  lastOutcomeAt?: string;
+}
+
+type OutreachSequenceStepStatus =
+  | "draft" | "approved" | "copied" | "contacted"
+  | "replied" | "no_response" | "skipped";
+```
 - [ ] 2. Add `outreachStrategy?: OutreachStrategy` to `Account` interface (OutreachPack remains as fallback/export)
 - [ ] 3. Create `src/lib/outreach-strategy.ts` — generates OutreachStrategy per outreach-ready account:
   - Select primary persona by evidence alignment (strongest card's dimension → matching persona)
-  - Choose channel: LinkedIn if no email, email if confirmed, call if C-level
+  - Choose recommended channel: LinkedIn if no email, email if confirmed, call if C-level
   - Choose angle from strongest observed evidence card
   - Generate rationale, nextBestAction, successHypothesis, risks, fallbackPlan
   - Build 4-step sequence: Day 1 → Day 2 → Day 5 → Day 7
@@ -413,9 +535,10 @@
 - [ ] 6. Create `src/pages/api/generate-strategy.ts`
 - [ ] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep
 - [ ] 8. **Data model rule:** OutreachStrategy is primary for UI. OutreachPack remains for backward compat + JSON export. Do NOT generate outreach twice.
+- [ ] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`.
 
 **Files to create:** `src/lib/outreach-strategy.ts`, `src/pages/api/generate-strategy.ts`
-**Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`
+**Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`, `src/lib/workflow-runner.ts`
 
 ---
 
@@ -444,6 +567,15 @@
 - [ ] 6. Validate Demo_Mode runs end-to-end with no API keys after all Phase 4 changes
 - [ ] 7. Validate old OutreachPack fallback still renders when outreachStrategy is undefined
 - [ ] 8. Verify full demo flow: preset ICP → workflow → MarketFlow auto-select → all tabs work → Agent Plan shows strategy → reject TinyBooks → feedback logged
+- [ ] 9. **MongoDB checks:**
+  - Validate app runs with MongoDB disabled (`MONGODB_ENABLE_PERSISTENCE=false`)
+  - Validate app runs with invalid `MONGODB_URI`
+  - Validate app runs when MongoDB API routes timeout (3s)
+  - Validate no MongoDB URI or database credentials appear in client bundle
+  - Validate persisted campaign can be loaded and produces the same visible state
+  - Validate saved strategies preserve evidence chip traceability
+  - Validate vector search is skipped gracefully if no vector index is configured
+  - Validate seeded semantic memory returns at least one useful recommendation (when enabled)
 
 **Files to modify:** `src/lib/schemas.ts`, `src/lib/traceability.ts`
 
@@ -512,4 +644,13 @@
 - [ ] Layout reset works after refresh
 - [ ] Keyboard shortcuts do not trigger while typing in inputs
 - [ ] Agent Simulation clearly labelled as simulation
+- [ ] App works with no MongoDB configuration
+- [ ] App works with MongoDB enabled — campaigns persist and can be resumed
+- [ ] MongoDB failure never blocks Demo Mode
+- [ ] MongoDB writes are non-blocking and timeout after 3 seconds safely
+- [ ] Campaign can be saved and resumed (accounts, evidence, scores, strategies, outcomes restored)
+- [ ] No MongoDB secrets exposed client-side
+- [ ] Semantic memory is optional and gracefully hidden if unavailable
+- [ ] If vector search is enabled, it returns a visible "similar campaign" insight
+- [ ] Existing localStorage fallback still works when MongoDB is disabled
 - [ ] Demo runs smoothly: preset ICP → auto-flow → select MarketFlow → Agent Plan → reject TinyBooks → done
