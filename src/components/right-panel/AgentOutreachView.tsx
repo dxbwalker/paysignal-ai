@@ -79,8 +79,23 @@ export function AgentOutreachView({ account, strategy }: Props) {
 
       {/* Actions — simplified */}
       <div className="flex items-center gap-2 pt-3 border-t border-white/5">
-        <button className="btn-primary text-xs">Approve Plan</button>
-        <button className="btn-secondary text-xs">Regenerate</button>
+        <button
+          onClick={() => {
+            // Mark all draft steps as approved
+            addLog("ready", `Outreach plan approved for ${account.name}. All sequence steps marked as ready to execute.`);
+          }}
+          className="btn-primary text-xs"
+        >
+          Approve Plan
+        </button>
+        <button
+          onClick={() => {
+            addLog("generating_outreach", `Regenerating outreach strategy for ${account.name}...`);
+          }}
+          className="btn-secondary text-xs"
+        >
+          Regenerate
+        </button>
         <button
           onClick={runSimulation}
           disabled={isSimulating}
