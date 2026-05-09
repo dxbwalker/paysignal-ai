@@ -639,3 +639,265 @@ type OutreachSequenceStepStatus =
 - [ ] If vector search is enabled, it returns a visible "similar campaign" insight
 - [ ] Existing localStorage fallback still works when MongoDB is disabled
 - [ ] Demo runs smoothly: preset ICP → auto-flow → select MarketFlow → Agent Plan → reject TinyBooks → done
+
+
+---
+
+## Phase 4C — UX Simplification & Premium Polish
+
+**Objective:** Reduce visual noise, simplify the interface, and make the selected account + Agent Plan the clear centre of the experience.
+
+**Core principle:** The screen should answer three questions within 3 seconds:
+1. Which account is the best opportunity?
+2. Why is it relevant now?
+3. What does the agent recommend doing next?
+
+**Build order:** Agent Plan default → layout simplification → selected account hero → evidence compression → opportunity feed redesign → visual restraint pass
+
+**Priority:** Do these first: Task 29, 32, 30, 31, 33, 36 — these six create the biggest visual/product improvement fastest.
+
+---
+
+### Task 29: Make Agent Plan the Primary Experience
+
+**Problem:** The right panel still feels like a collection of tabs. The product's most valuable output is the agent's recommended plan, so it should be the default experience.
+
+- [ ] 1. Change default selected tab in `AccountDetail.tsx` from `score` to `agent_plan` when `account.outreachStrategy` exists (or when `generateStrategy(account)` returns non-null)
+- [ ] 2. If strategy does not exist (score <60), fall back to `brief` as default tab
+- [ ] 3. Rename visible tab label from "Agent Plan" to "Plan" for simplicity
+- [ ] 4. Reorder tabs to: Plan | Brief | Evidence | Score | Personas | Actions
+- [ ] 5. Make Plan tab visually prominent with a subtle accent underline and icon
+- [ ] 6. Add a short subtitle under the tab row: "Recommended buyer, channel, sequence, and next action"
+- [ ] 7. Ensure keyboard shortcuts and Presentation Mode still navigate correctly after tab order change
+
+**Acceptance criteria:**
+- Selecting an outreach-ready account opens directly on the Plan tab
+- The first visible right-panel content is the agent recommendation, not raw evidence
+- Old accounts without strategy still render through fallback view
+- No existing Brief / Evidence / Score functionality breaks
+
+**Files to modify:** `src/components/right-panel/AccountDetail.tsx`
+
+---
+
+### Task 30: Collapse Left Panel into Compact Summary Mode
+
+**Problem:** The left panel remains too heavy after the search plan is approved. It takes attention away from the accounts and agent recommendation.
+
+- [ ] 1. Add `searchPlanCollapsed: boolean` to workflow state (or local component state)
+- [ ] 2. After Search Plan approval (workflow reaches `discovering` stage or later), show compact summary mode by default
+- [ ] 3. Compact summary shows only: ICP title/summary (max 2 lines), 3-5 key chips (business model, geography, top personas), Demo/Live mode badge, "Edit Plan" button
+- [ ] 4. Hide detailed keyword/company/geography/exclusion sections behind "Edit Plan"
+- [ ] 5. When "Edit Plan" is clicked, expand full SearchPlanEditor
+- [ ] 6. Add "Collapse Plan" button to return to compact mode
+- [ ] 7. Persist collapsed state in localStorage
+- [ ] 8. In Presentation Mode, force compact summary mode
+
+**Acceptance criteria:**
+- After search approval, the left panel becomes visually quiet
+- Presenter can still reopen and edit the full search plan
+- Left panel no longer competes with the selected account detail
+- Demo Mode badge remains visible but subtle
+
+**Files to modify:** `src/components/left-panel/SearchPlanEditor.tsx`, `src/components/left-panel/ICPInput.tsx`, `src/components/left-panel/ModeToggle.tsx`
+
+---
+
+### Task 31: Reduce Agent Decision Stream Visual Weight
+
+**Problem:** The bottom stream currently occupies too much screen space and feels like a log panel. It should support the story, not dominate it.
+
+- [ ] 1. Make Agent Decision Stream collapsed/compact by default after workflow reaches `ready`
+- [ ] 2. Default compact height: 72–96px (show only 3 most important decisions)
+- [ ] 3. Add "Expand stream" / "Collapse stream" control
+- [ ] 4. In compact mode, hide timestamps or move them to hover state
+- [ ] 5. In expanded mode, show full decision history
+- [ ] 6. Prioritise entries with importance: `key` and `warning`
+- [ ] 7. Rewrite routine entries to be shorter and more commercial
+- [ ] 8. Remove excessive row spacing and reduce visual borders
+
+**Acceptance criteria:**
+- Bottom panel feels secondary by default
+- Key decisions remain visible
+- User can expand the full stream when needed
+- Presentation Mode shows only key decisions
+
+**Files to modify:** `src/components/layout/AgentDecisionStream.tsx`, `src/lib/demo-scenario.ts`
+
+---
+
+### Task 32: Selected Account Hero Redesign
+
+**Problem:** The selected account does not have a strong enough focal point. The right panel needs a premium hero section that immediately explains the opportunity.
+
+- [ ] 1. Create `src/components/right-panel/SelectedAccountHero.tsx`
+- [ ] 2. Place it at the top of the right panel, above tabs
+- [ ] 3. Hero includes: company name, score (arc or ring), confidence, one-line opportunity hypothesis, recommended persona, recommended channel, next best action
+- [ ] 4. Use clean two-column layout: Left (account identity + why-now sentence), Right (score arc + next-best-action CTA)
+- [ ] 5. Show only one primary CTA: "Approve Plan" or "Review Plan" or "Research Further"
+- [ ] 6. Remove duplicate score/action information from lower sections where possible
+- [ ] 7. Use restrained glow only for the selected account hero / primary CTA
+- [ ] 8. Make hero responsive at smaller panel widths
+
+**Acceptance criteria:**
+- User immediately understands why the account matters
+- Right panel has a clear focal point
+- Agent recommendation is visible before any detailed tab content
+- Score, recommendation, and next action are not buried in lower tabs
+
+**Files to create:** `src/components/right-panel/SelectedAccountHero.tsx`
+**Files to modify:** `src/components/right-panel/AccountDetail.tsx`
+
+---
+
+### Task 33: Compress Evidence View
+
+**Problem:** Evidence cards are too dense and make the right panel feel like documentation. Evidence should prove the recommendation without overwhelming the user.
+
+- [ ] 1. Show only top 3 evidence cards by default (ranked: high confidence first, observed before inferred, score-contributing dimensions first)
+- [ ] 2. Add "Show all evidence" button to reveal remaining cards
+- [ ] 3. Redesign card layout: signal title, one-sentence evidence summary, confidence badge, suggested outreach angle
+- [ ] 4. Move source, reliability, synthetic label, and inference explanation into a collapsed "Details" row
+- [ ] 5. Reduce visible chips to maximum 2 per card: evidence type + confidence
+- [ ] 6. Replace long signal labels like `hiring_payment_ops` with readable titles like "Payment Ops Hiring"
+- [ ] 7. Add clickable "Used in plan" indicator for evidence referenced by Agent Plan
+- [ ] 8. Add smooth expand/collapse animation
+
+**Acceptance criteria:**
+- Evidence tab is readable in less than 10 seconds
+- Default view shows strongest evidence only
+- Detailed source/reliability information remains available
+- Evidence still feels credible, but not visually noisy
+
+**Files to modify:** `src/components/right-panel/EvidenceCardList.tsx`
+
+---
+
+### Task 34: Simplify Account List into Opportunity Feed
+
+**Problem:** The account list still feels like a dense operational table. It should feel like a ranked opportunity feed.
+
+- [ ] 1. Keep Top Opportunity hero, but simplify content: company, score, why now, recommended persona/channel, primary CTA "Review Plan"
+- [ ] 2. Make non-selected account rows more compact: company name, score, business model/location, why-now one-liner, next action badge
+- [ ] 3. Remove mini 5-bar score breakdown from normal rows (show only on Top Opportunity card, selected account, or hover)
+- [ ] 4. Reduce filter visual weight — move less-used filters into "More" if space is tight
+- [ ] 5. Make selected account obvious with left accent and subtle glow
+- [ ] 6. Ensure no row feels overloaded with metadata
+
+**Acceptance criteria:**
+- Account list is scannable
+- Top Opportunity stands out clearly
+- Normal account rows are compact and clean
+- No row feels overloaded with metadata
+
+**Files to modify:** `src/components/center-panel/AccountList.tsx`, `src/components/center-panel/AccountCard.tsx`
+
+---
+
+### Task 35: Reduce Badge and Chip Overload
+
+**Problem:** Too many pills and chips make the product feel busy. Metadata should not compete with recommendations.
+
+- [ ] 1. Audit all visible chips and badges across the app
+- [ ] 2. Keep only these badges visible by default: Score, Confidence, Recommended action, Evidence type (where needed)
+- [ ] 3. Move secondary metadata into hover states, collapsible details, or muted text
+- [ ] 4. Standardise badge sizes: primary badge, secondary badge, muted metadata chip
+- [ ] 5. Reduce colour saturation for secondary chips
+- [ ] 6. Use neutral text for metadata like "synthetic", "source", and "reliability"
+- [ ] 7. Remove duplicate badges where same information appears in nearby text
+- [ ] 8. Keep red only for real negative states: suppressed, error, deprioritized
+
+**Acceptance criteria:**
+- UI looks calmer
+- Important labels stand out more
+- Metadata remains available without dominating the screen
+- No card has more than 3 visible badges by default
+
+**Files to modify:** `src/components/center-panel/AccountCard.tsx`, `src/components/right-panel/EvidenceCardList.tsx`, `src/components/right-panel/OutreachTimeline.tsx`, `src/components/right-panel/AgentRecommendation.tsx`, `src/components/shared/ScoreBadge.tsx`, `src/components/shared/DemoModeBadge.tsx`
+
+---
+
+### Task 36: Agent Plan Simplification
+
+**Problem:** The Agent Plan is directionally right, but it can still become too complex. It should feel like the agent has already made the hard choices.
+
+- [ ] 1. In `AgentOutreachView`, put NextBestAction above the timeline
+- [ ] 2. Show only the first sequence step expanded by default; collapse later steps
+- [ ] 3. Add a short agent rationale sentence above the timeline
+- [ ] 4. Reduce visible action buttons to: "Approve Plan", "Copy Step", "Regenerate"
+- [ ] 5. Move "Change Persona" and "Change Angle" into an overflow menu or secondary controls
+- [ ] 6. Keep Risks & Fallback collapsed by default
+- [ ] 7. Show evidence chips inline under each message, max 3 chips
+- [ ] 8. Add "Show all evidence used" if more than 3 evidence references exist
+
+**Acceptance criteria:**
+- Agent Plan feels guided, not like a configuration screen
+- User sees one obvious next action
+- Timeline shows strategy without overwhelming detail
+- Secondary controls are available but not visually dominant
+
+**Files to modify:** `src/components/right-panel/AgentOutreachView.tsx`, `src/components/right-panel/NextBestAction.tsx`, `src/components/right-panel/OutreachTimeline.tsx`, `src/components/right-panel/AgentRecommendation.tsx`
+
+---
+
+### Task 37: Typography and Spacing Pass
+
+**Problem:** The screen feels dense partly because font sizes, line-height, and spacing are too compact.
+
+- [ ] 1. Increase main content font size slightly where readability is poor (generated messages, evidence summaries)
+- [ ] 2. Increase line-height for generated content (1.6–1.7)
+- [ ] 3. Use stronger heading hierarchy: page heading → account name → card title → metadata
+- [ ] 4. Add more vertical spacing between right-panel sections
+- [ ] 5. Reduce excessive horizontal borders — replace some with spacing and background contrast
+- [ ] 6. Ensure UI is readable on projector / large screen
+- [ ] 7. Avoid tiny text below 12px except for timestamps or muted metadata
+
+**Acceptance criteria:**
+- UI feels less cramped
+- Generated messages are comfortable to read
+- Important content is visually obvious
+- Projector readability improves
+
+**Files to modify:** `src/styles/globals.css`, all panel components as needed
+
+---
+
+### Task 38: Final Demo Polish and Regression Check
+
+- [ ] 1. Run full demo in Demo Mode with no API keys
+- [ ] 2. Verify left panel compact mode after Search Plan approval
+- [ ] 3. Verify selected account opens on Plan tab
+- [ ] 4. Verify Top Opportunity card is visually strong
+- [ ] 5. Verify bottom stream is compact by default
+- [ ] 6. Verify evidence shows top 3 first and expands correctly
+- [ ] 7. Verify Agent Plan has one obvious next action
+- [ ] 8. Verify Reject TinyBooks still works
+- [ ] 9. Verify Presentation Mode still works
+- [ ] 10. Verify MongoDB disabled still works
+- [ ] 11. Verify MongoDB enabled still saves/loads if configured
+- [ ] 12. Run: `npm run typecheck`, `npm run build`
+
+**Acceptance criteria:**
+- Demo feels simpler and more premium than before
+- No obvious layout clutter
+- No broken tabs or missing fallback content
+- Build passes cleanly
+
+---
+
+## Phase 4C Quality Gates
+
+- [ ] Agent Plan is the default selected tab for outreach-ready accounts
+- [ ] Left panel collapses into compact summary after approval
+- [ ] Bottom decision stream is compact by default
+- [ ] Selected account hero clearly shows score, why now, recommendation, and next action
+- [ ] Evidence tab shows top 3 cards first
+- [ ] No evidence card shows more than 2 badges by default
+- [ ] Account list is scannable and not overloaded
+- [ ] Normal account rows do not show mini score bars unless selected/hovered
+- [ ] Agent Plan shows one clear primary action
+- [ ] Secondary controls are hidden or visually de-emphasised
+- [ ] The UI uses fewer borders and more spacing
+- [ ] Generated text is readable on a projector
+- [ ] Demo can be completed without explaining the UI structure
+- [ ] Product feels agent-led, not manually operated
