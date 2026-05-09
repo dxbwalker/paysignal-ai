@@ -12,13 +12,15 @@ export function ThreePanelLayout({ leftPanel, centerPanel, rightPanel, bottomPan
     <div className="h-screen flex flex-col overflow-hidden bg-surface">
       {/* Main three-panel area */}
       <div className="flex-1 flex min-h-0">
-        {/* Left Panel — ICP & Search Plan */}
-        <div className="w-[280px] min-w-[280px] h-full overflow-y-auto border-r border-white/5 bg-surface-raised/50">
-          {leftPanel}
-        </div>
+        {/* Left Panel — ICP & Search Plan (hidden in presentation mode) */}
+        {leftPanel && (
+          <div className="w-[280px] min-w-[280px] h-full overflow-y-auto border-r border-white/5 bg-surface-raised/50">
+            {leftPanel}
+          </div>
+        )}
 
         {/* Center Panel — Ranked Accounts */}
-        <div className="w-[380px] min-w-[320px] h-full overflow-y-auto border-r border-white/5 bg-surface-raised/30">
+        <div className={`${leftPanel ? "w-[380px] min-w-[320px]" : "w-[340px] min-w-[300px]"} h-full overflow-y-auto border-r border-white/5 bg-surface-raised/30`}>
           {centerPanel}
         </div>
 
@@ -28,7 +30,7 @@ export function ThreePanelLayout({ leftPanel, centerPanel, rightPanel, bottomPan
         </div>
       </div>
 
-      {/* Bottom Panel — Agent Activity Log */}
+      {/* Bottom Panel — Agent Decision Stream */}
       <div className="h-[180px] min-h-[120px] overflow-y-auto border-t border-white/5 bg-surface-raised">
         {bottomPanel}
       </div>

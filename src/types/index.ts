@@ -275,6 +275,7 @@ export interface WorkflowState {
   selectedAccountId?: string;
   campaignId?: string;
   persistenceStatus: "none" | "saving" | "saved" | "failed";
+  presentationMode: boolean;
 }
 
 // --- Provider Capability ---

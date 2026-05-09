@@ -56,6 +56,7 @@ function createInitialState(): WorkflowState {
     selectedAccountId: undefined,
     campaignId: undefined,
     persistenceStatus: "none",
+    presentationMode: false,
   };
 }
 
@@ -80,6 +81,7 @@ export type WorkflowAction =
   | { type: "SET_CAMPAIGN_FEEDBACK"; feedback: CampaignFeedback }
   | { type: "SET_CAMPAIGN_ID"; campaignId: string }
   | { type: "SET_PERSISTENCE_STATUS"; status: "none" | "saving" | "saved" | "failed" }
+  | { type: "TOGGLE_PRESENTATION_MODE" }
   | { type: "CLEAR_DATA" }
   | { type: "RESET" };
 
@@ -212,6 +214,9 @@ function reducer(state: WorkflowState, action: WorkflowAction): WorkflowState {
 
     case "SET_CAMPAIGN_FEEDBACK":
       return { ...state, campaignFeedback: action.feedback };
+
+    case "TOGGLE_PRESENTATION_MODE":
+      return { ...state, presentationMode: !state.presentationMode };
 
     case "CLEAR_DATA":
       cache.remove(SUPPRESSION_LIST_KEY);
