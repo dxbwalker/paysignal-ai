@@ -9,29 +9,29 @@ interface Props {
 
 export function ThreePanelLayout({ leftPanel, centerPanel, rightPanel, bottomPanel }: Props) {
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-surface">
-      {/* Main three-panel area */}
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "var(--surface)" }}>
+      {/* Main panels */}
       <div className="flex-1 flex min-h-0">
-        {/* Left Panel — ICP & Search Plan (hidden in presentation mode) */}
+        {/* Left */}
         {leftPanel && (
-          <div className="w-[280px] min-w-[280px] h-full overflow-y-auto border-r border-white/5 bg-surface-raised/50">
+          <div className="w-[280px] min-w-[280px] h-full overflow-y-auto panel-surface">
             {leftPanel}
           </div>
         )}
 
-        {/* Center Panel — Ranked Accounts */}
-        <div className={`${leftPanel ? "w-[380px] min-w-[320px]" : "w-[340px] min-w-[300px]"} h-full overflow-y-auto border-r border-white/5 bg-surface-raised/30`}>
+        {/* Center */}
+        <div className={`${leftPanel ? "w-[360px]" : "w-[320px]"} min-w-[300px] h-full overflow-y-auto panel-surface`}>
           {centerPanel}
         </div>
 
-        {/* Right Panel — Account Detail (fills remaining space) */}
-        <div className="flex-1 h-full overflow-y-auto bg-surface-raised/20">
+        {/* Right */}
+        <div className="flex-1 h-full overflow-y-auto" style={{ background: "var(--surface-raised)" }}>
           {rightPanel}
         </div>
       </div>
 
-      {/* Bottom Panel — Agent Decision Stream (compact by default) */}
-      <div className="h-[120px] min-h-[80px] overflow-y-auto border-t border-white/5 bg-surface-raised">
+      {/* Bottom */}
+      <div className="h-[110px] overflow-y-auto" style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}>
         {bottomPanel}
       </div>
     </div>
