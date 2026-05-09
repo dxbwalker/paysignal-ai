@@ -2,17 +2,41 @@
  * Brief Templates — template-based Account Opportunity Brief generation.
  * Only generates for accounts with score >= 60.
  * All claims must be traceable to Evidence_Cards or labelled as hypotheses.
+ *
+ * Requirements: 8.1-8.9, 11.13
  */
 
 import type { Account, AccountOpportunityBrief, BriefEvidence } from "@/types";
 
+export interface GenerateBriefOptions {
+  /** Force regeneration even if a brief already exists (e.g. after evidence/persona edits) */
+  regenerate?: boolean;
+}
+
+/**
+ * Check whether an account qualifies for brief generation (score >= 60).
+ */
+export function canGenerateBrief(account: Account): boolean {
+  return !!(account.opportunityScore && account.opportunityScore.total >= 60);
+}
+
 /**
  * Generate an Account Opportunity Brief from evidence and scoring data.
+ * Returns null if account score < 60 or no evidence cards exist.
+ * Supports regeneration after evidence/persona edits via options.regenerate.
  */
-export function generateBrief(account: Account): AccountOpportunityBrief | null {
+export function generateBrief(
+  account: Account,
+  options: GenerateBriefOptions = {}
+): AccountOpportunityBrief | null {
   const score = account.opportunityScore;
   if (!score || score.total < 60) return null;
   if (account.evidenceCards.length === 0) return null;
+
+  // If brief already exists and regeneration not requested, return existing
+  if (account.opportunityBrief && !options.regenerate) {
+    return account.opportunityBrief;
+  }
 
   const companySummary = buildCompanySummary(account);
   const hypothesis = buildHypothesis(account);
@@ -21,7 +45,7 @@ export function generateBrief(account: Account): AccountOpportunityBrief | null 
   const outreachAngle = buildOutreachAngle(account);
   const questions = buildDiscoveryQuestions(account);
 
-  // Check for low evidence warning
+  // Check for low evidence warning (Req 8.8)
   const highMediumCards = account.evidenceCards.filter(
     (c) => c.confidenceLevel === "high" || c.confidenceLevel === "medium"
   );

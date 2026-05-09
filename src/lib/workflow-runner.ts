@@ -16,9 +16,12 @@ import type {
   SearchPlan,
   Mode,
 } from "@/types";
-import type { WorkflowAction } from "@/context/WorkflowContext";
-import { demoAccounts, getDemoOutreachPack, getDemoBrief } from "@/lib/demo-data";
+import { getDemoOutreachPack, getDemoBrief, getDemoAccounts } from "@/lib/demo-data";
 import { cache } from "@/lib/cache";
+
+// Use the dispatch type from context
+type WorkflowAction = any; // Accepts any action from WorkflowContext reducer
+const demoAccounts = getDemoAccounts();
 
 // --- Constants ---
 
@@ -26,6 +29,9 @@ const TIME_BUDGET_MS = 90_000; // 90 seconds
 const API_TIMEOUT_MS = 30_000; // 30 seconds per API call
 const CACHE_KEY_ACCOUNTS = "workflow-accounts";
 const CACHE_KEY_SEARCH_PLAN = "workflow-search-plan";
+const CACHE_KEY_ENRICHMENT = "workflow-enrichment";
+const CACHE_KEY_SCORES = "workflow-scores";
+const CACHE_KEY_OUTREACH = "workflow-outreach";
 
 // --- Types ---
 
@@ -207,7 +213,27 @@ async function enrichAccounts(
   mode: Mode,
   startMs: number
 ): Promise<StageResult<Account[]>> {
+  // Check cache for enrichment results
+  const cachedEnrichment = cache.get<Account[]>(CACHE_KEY_ENRICHMENT);
+
   if (mode === "demo" || isBudgetExceeded(startMs)) {
+    // Use cached enrichment if available
+    if (cachedEnrichment && cachedEnrichment.length > 0) {
+      const enrichedMap = new Map(cachedEnrichment.map((a) => [a.id, a]));
+      const data = accounts.map((a) => {
+        const cached = enrichedMap.get(a.id);
+        if (cached) {
+          return { ...a, evidenceCards: cached.evidenceCards, status: "enriched" as const };
+        }
+        return { ...a, status: a.evidenceCards.length > 0 ? ("enriched" as const) : a.status };
+      });
+      return {
+        data,
+        fallback: isBudgetExceeded(startMs) && mode !== "demo",
+        fallbackReason: isBudgetExceeded(startMs) ? "Time budget — using cached enrichment" : undefined,
+      };
+    }
+
     const data = accounts.map((a) => ({
       ...a,
       status: a.evidenceCards.length > 0 ? ("enriched" as const) : a.status,
@@ -229,8 +255,22 @@ async function enrichAccounts(
     if (!res.ok) throw new Error(`API error: ${res.status}`);
 
     const json = await res.json();
+    // Cache enrichment results for repeated demos
+    cache.set(CACHE_KEY_ENRICHMENT, json.accounts);
     return { data: json.accounts, fallback: false };
   } catch {
+    // Try cached data before giving up
+    if (cachedEnrichment && cachedEnrichment.length > 0) {
+      const enrichedMap = new Map(cachedEnrichment.map((a) => [a.id, a]));
+      const data = accounts.map((a) => {
+        const cached = enrichedMap.get(a.id);
+        if (cached) {
+          return { ...a, evidenceCards: cached.evidenceCards, status: "enriched" as const };
+        }
+        return a;
+      });
+      return { data, fallback: true, fallbackReason: "Web enrichment unavailable — using cached enrichment data" };
+    }
     return {
       data: accounts,
       fallback: true,
@@ -245,7 +285,27 @@ async function scoreAccounts(
   mode: Mode,
   startMs: number
 ): Promise<StageResult<Account[]>> {
+  // Check cache for scored results
+  const cachedScores = cache.get<Account[]>(CACHE_KEY_SCORES);
+
   if (mode === "demo" || isBudgetExceeded(startMs)) {
+    // Use cached scores if available
+    if (cachedScores && cachedScores.length > 0) {
+      const scoreMap = new Map(cachedScores.map((a) => [a.id, a.opportunityScore]));
+      const data = accounts.map((a) => {
+        const cachedScore = scoreMap.get(a.id);
+        if (cachedScore) {
+          return { ...a, opportunityScore: cachedScore, status: "scored" as const };
+        }
+        return { ...a, status: a.opportunityScore ? ("scored" as const) : a.status };
+      });
+      return {
+        data,
+        fallback: isBudgetExceeded(startMs) && mode !== "demo",
+        fallbackReason: isBudgetExceeded(startMs) ? "Time budget — using cached scores" : undefined,
+      };
+    }
+
     // Demo accounts already have scores
     const data = accounts.map((a) => ({
       ...a,
@@ -268,8 +328,22 @@ async function scoreAccounts(
     if (!res.ok) throw new Error(`API error: ${res.status}`);
 
     const json = await res.json();
+    // Cache scored accounts for repeated demos
+    cache.set(CACHE_KEY_SCORES, json.accounts);
     return { data: json.accounts, fallback: false };
   } catch {
+    // Try cached scores before giving up
+    if (cachedScores && cachedScores.length > 0) {
+      const scoreMap = new Map(cachedScores.map((a) => [a.id, a.opportunityScore]));
+      const data = accounts.map((a) => {
+        const cachedScore = scoreMap.get(a.id);
+        if (cachedScore) {
+          return { ...a, opportunityScore: cachedScore, status: "scored" as const };
+        }
+        return a;
+      });
+      return { data, fallback: true, fallbackReason: "Scoring API unavailable — using cached scores" };
+    }
     return {
       data: accounts,
       fallback: true,
@@ -327,15 +401,28 @@ async function generateBriefsAndOutreach(
       !a.suppressedAt
   );
 
+  // Check cache for outreach packs
+  const cachedOutreach = cache.get<Account[]>(CACHE_KEY_OUTREACH);
+
   if (mode === "demo" || isBudgetExceeded(startMs)) {
+    // Try cached outreach first
+    const cachedMap = cachedOutreach
+      ? new Map(cachedOutreach.map((a) => [a.id, a]))
+      : null;
+
     // Phase 1: Use precomputed demo briefs/outreach packs from seed data
     const updatedAccounts = accounts.map((a) => {
       if (!qualifying.find((q) => q.id === a.id)) return a;
 
+      // Check cache for this account's outreach
+      const cached = cachedMap?.get(a.id);
+      const brief = a.opportunityBrief ?? cached?.opportunityBrief ?? getDemoBrief(a);
+      const outreach = a.outreachPack ?? cached?.outreachPack ?? getDemoOutreachPack(a);
+
       return {
         ...a,
-        opportunityBrief: a.opportunityBrief ?? getDemoBrief(a),
-        outreachPack: a.outreachPack ?? getDemoOutreachPack(a),
+        opportunityBrief: brief,
+        outreachPack: outreach,
         status: "outreach_ready" as const,
       };
     });
@@ -354,13 +441,14 @@ async function generateBriefsAndOutreach(
 
   for (const account of qualifying) {
     if (isBudgetExceeded(startMs)) {
-      // Fallback to demo data for remaining accounts
+      // Fallback to cached or demo data for remaining accounts
+      const cached = cachedOutreach?.find((a) => a.id === account.id);
       const idx = updatedAccounts.findIndex((a) => a.id === account.id);
       if (idx !== -1) {
         updatedAccounts[idx] = {
           ...updatedAccounts[idx],
-          opportunityBrief: updatedAccounts[idx].opportunityBrief ?? getDemoBrief(account),
-          outreachPack: updatedAccounts[idx].outreachPack ?? getDemoOutreachPack(account),
+          opportunityBrief: updatedAccounts[idx].opportunityBrief ?? cached?.opportunityBrief ?? getDemoBrief(account),
+          outreachPack: updatedAccounts[idx].outreachPack ?? cached?.outreachPack ?? getDemoOutreachPack(account),
           status: "outreach_ready" as const,
         };
       }
@@ -408,18 +496,22 @@ async function generateBriefsAndOutreach(
         };
       }
     } catch {
-      // Fallback to demo data on error
+      // Fallback to cached or demo data on error
+      const cached = cachedOutreach?.find((a) => a.id === account.id);
       const idx = updatedAccounts.findIndex((a) => a.id === account.id);
       if (idx !== -1) {
         updatedAccounts[idx] = {
           ...updatedAccounts[idx],
-          opportunityBrief: updatedAccounts[idx].opportunityBrief ?? getDemoBrief(account),
-          outreachPack: updatedAccounts[idx].outreachPack ?? getDemoOutreachPack(account),
+          opportunityBrief: updatedAccounts[idx].opportunityBrief ?? cached?.opportunityBrief ?? getDemoBrief(account),
+          outreachPack: updatedAccounts[idx].outreachPack ?? cached?.outreachPack ?? getDemoOutreachPack(account),
           status: "outreach_ready" as const,
         };
       }
     }
   }
+
+  // Cache outreach results for repeated demos
+  cache.set(CACHE_KEY_OUTREACH, updatedAccounts.filter((a) => a.outreachPack));
 
   return { data: updatedAccounts, fallback: false };
 }
@@ -440,7 +532,8 @@ export async function runWorkflow(options: WorkflowRunnerOptions): Promise<void>
   // Helper to check budget and trigger fallback
   function checkBudget(): boolean {
     if (isBudgetExceeded(startMs)) {
-      dispatch({ type: "TIME_BUDGET_EXCEEDED" });
+      // Time budget exceeded — log it
+      addLog("ready", "Time budget exceeded — falling back to cached/demo data for remaining stages.");
       onTimeBudgetExceeded?.();
       return true;
     }

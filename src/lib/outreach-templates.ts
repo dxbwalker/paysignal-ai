@@ -2,13 +2,81 @@
  * Outreach Templates — template-based generation with evidence variable substitution.
  * Each message references at least one evidence-backed signal.
  * No unsupported claims — all references traceable to Evidence_Card IDs.
+ *
+ * Requirements: 7.1-7.10, 9.13, 11.13
  */
 
 import type { Account, OutreachPack, EvidenceCard } from "@/types";
 
+export interface GenerateOutreachOptions {
+  /** Force regeneration even if an outreach pack already exists (e.g. after evidence/persona edits) */
+  regenerate?: boolean;
+}
+
+export interface OutreachBlockedResult {
+  blocked: true;
+  reason: "insufficient_evidence" | "suppressed";
+  message: string;
+}
+
+export type GenerateOutreachResult =
+  | { blocked: false; pack: OutreachPack }
+  | OutreachBlockedResult;
+
+/**
+ * Check whether outreach generation is blocked for an account.
+ * Returns a blocked result with reason, or null if generation can proceed.
+ */
+export function checkOutreachBlocked(account: Account): OutreachBlockedResult | null {
+  if (account.suppressedAt) {
+    return {
+      blocked: true,
+      reason: "suppressed",
+      message: `Account "${account.name}" is on the suppression list (suppressed ${account.suppressedAt}). Cannot generate outreach.`,
+    };
+  }
+  if (!account.evidenceCards || account.evidenceCards.length < 1) {
+    return {
+      blocked: true,
+      reason: "insufficient_evidence",
+      message: `Account "${account.name}" has no Evidence_Cards. At least 1 Evidence_Card is required to generate outreach.`,
+    };
+  }
+  return null;
+}
+
 /**
  * Generate an outreach pack for an account using template-based generation.
- * Returns null if account has fewer than 1 Evidence_Card.
+ * Returns a result object indicating success or blocked status.
+ * Supports regeneration after evidence/persona edits via options.regenerate.
+ */
+export function generateOutreachPackResult(
+  account: Account,
+  options: GenerateOutreachOptions = {}
+): GenerateOutreachResult {
+  const blocked = checkOutreachBlocked(account);
+  if (blocked) return blocked;
+
+  // If pack already exists and regeneration not requested, return existing
+  if (account.outreachPack && !options.regenerate) {
+    return { blocked: false, pack: account.outreachPack };
+  }
+
+  const pack = generateOutreachPack(account);
+  if (!pack) {
+    return {
+      blocked: true,
+      reason: "insufficient_evidence",
+      message: "Could not generate outreach pack due to insufficient evidence.",
+    };
+  }
+
+  return { blocked: false, pack };
+}
+
+/**
+ * Generate an outreach pack for an account using template-based generation.
+ * Returns null if account has fewer than 1 Evidence_Card or is suppressed.
  */
 export function generateOutreachPack(account: Account): OutreachPack | null {
   if (account.evidenceCards.length < 1) return null;
@@ -227,4 +295,53 @@ function buildWhyNow(account: Account, cards: EvidenceCard[]): string {
   }
 
   return `${account.name} shows payment complexity signals that align with agentic payment automation. Evidence suggests operational overhead that autonomous agents can reduce.`;
+}
+
+// --- JSON Export (Req 8.5) ---
+
+export interface OutreachPackExport {
+  accountId: string;
+  accountName: string;
+  generatedAt: string;
+  generationMethod: "llm" | "template";
+  whyThisAccountWhyNow: string;
+  email: { subject: string; body: string };
+  linkedinMessage: string;
+  callOpener: { talkingPoints: string[] };
+  followUp: string;
+  discoveryQuestions: string[];
+  claimEvidenceIds: string[];
+}
+
+/**
+ * Export an outreach pack as a structured JSON object suitable for CRM or workflow automation.
+ * Requirement 8.5: exportable as structured JSON.
+ */
+export function exportOutreachPackAsJson(
+  pack: OutreachPack,
+  accountName: string
+): OutreachPackExport {
+  return {
+    accountId: pack.accountId,
+    accountName,
+    generatedAt: pack.generatedAt,
+    generationMethod: pack.generationMethod,
+    whyThisAccountWhyNow: pack.whyThisAccountWhyNow,
+    email: { subject: pack.email.subject, body: pack.email.body },
+    linkedinMessage: pack.linkedinMessage,
+    callOpener: { talkingPoints: [...pack.callOpener.talkingPoints] },
+    followUp: pack.followUp,
+    discoveryQuestions: [...pack.discoveryQuestions],
+    claimEvidenceIds: [...pack.claimEvidenceIds],
+  };
+}
+
+/**
+ * Serialize an outreach pack to a JSON string for export/download.
+ */
+export function serializeOutreachPack(
+  pack: OutreachPack,
+  accountName: string
+): string {
+  return JSON.stringify(exportOutreachPackAsJson(pack, accountName), null, 2);
 }

@@ -1,9 +1,23 @@
 /**
  * Web search provider — searches public web for payment complexity signals.
  * Returns normalized EvidenceCards.
+ *
+ * Features:
+ * - Wired to Brave Search API (configurable via adapter pattern)
+ * - 30s timeout on API calls (Requirement 4.8 fallback)
+ * - Normalized EvidenceCard output with source attribution
+ * - Source reliability classification (3-tier: high/medium/low)
+ * - Treats web content as untrusted input (Requirement 4.9)
  */
 
-import type { Account, EvidenceCard, ConfidenceLevel, SourceReliability } from "@/types";
+import type {
+  Account,
+  EvidenceCard,
+  ConfidenceLevel,
+  SourceReliability,
+  SignalType,
+  ScoringDimension,
+} from "@/types";
 
 const TIMEOUT_MS = 30_000;
 
@@ -13,7 +27,10 @@ export interface WebSearchProvider {
 
 export function createWebSearchProvider(): WebSearchProvider {
   return {
-    async enrichAccount(account: Account, apiKey: string): Promise<EvidenceCard[]> {
+    async enrichAccount(
+      account: Account,
+      apiKey: string
+    ): Promise<EvidenceCard[]> {
       // Build search query from account data
       const query = buildSearchQuery(account);
 
@@ -21,12 +38,12 @@ export function createWebSearchProvider(): WebSearchProvider {
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
       try {
-        // Generic web search API call — adapter pattern allows swapping providers
+        // Brave Search API — adapter pattern allows swapping providers
         const response = await fetch(
           `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`,
           {
             headers: {
-              "Accept": "application/json",
+              Accept: "application/json",
               "Accept-Encoding": "gzip",
               "X-Subscription-Token": apiKey,
             },
@@ -50,6 +67,10 @@ export function createWebSearchProvider(): WebSearchProvider {
   };
 }
 
+/**
+ * Build a search query targeting payment complexity signals for the account.
+ * Combines company name with payment-related keywords.
+ */
 function buildSearchQuery(account: Account): string {
   const terms = [
     account.name,
@@ -61,33 +82,64 @@ function buildSearchQuery(account: Account): string {
   return terms.join(" ");
 }
 
-function extractEvidenceFromResults(account: Account, data: any): EvidenceCard[] {
+/**
+ * Extract EvidenceCards from web search results.
+ * Treats all web content as untrusted (Requirement 4.9).
+ * Only creates cards for results with traceable source URLs (Requirement 4.10).
+ */
+function extractEvidenceFromResults(
+  account: Account,
+  data: unknown
+): EvidenceCard[] {
   const cards: EvidenceCard[] = [];
-  const results = data?.web?.results || [];
 
-  const paymentKeywords = [
-    "payout", "reconciliation", "refund", "chargeback", "billing",
-    "subscription", "multi-currency", "international", "marketplace",
-    "supplier payment", "creator payment", "bill.com", "sap", "tipalti",
-    "netsuite", "stripe", "adyen",
+  if (!data || typeof data !== "object") return cards;
+
+  const webData = data as { web?: { results?: WebResult[] } };
+  const results = webData?.web?.results || [];
+
+  const paymentKeywords: PaymentKeyword[] = [
+    { keyword: "payout", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "reconciliation", signal: "manual_reconciliation", dimension: "payment_complexity" },
+    { keyword: "refund", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "chargeback", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "billing", signal: "billing_operations", dimension: "payment_complexity" },
+    { keyword: "subscription", signal: "billing_operations", dimension: "operational_urgency" },
+    { keyword: "multi-currency", signal: "multi_country", dimension: "payment_complexity" },
+    { keyword: "international", signal: "international_expansion", dimension: "operational_urgency" },
+    { keyword: "marketplace", signal: "marketplace_model", dimension: "payment_complexity" },
+    { keyword: "supplier payment", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "creator payment", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "bill.com", signal: "legacy_tools", dimension: "automation_fit" },
+    { keyword: "sap", signal: "legacy_tools", dimension: "automation_fit" },
+    { keyword: "tipalti", signal: "legacy_tools", dimension: "automation_fit" },
+    { keyword: "netsuite", signal: "legacy_tools", dimension: "automation_fit" },
+    { keyword: "stripe", signal: "complex_payouts", dimension: "payment_complexity" },
+    { keyword: "adyen", signal: "complex_payouts", dimension: "payment_complexity" },
   ];
 
   for (const result of results.slice(0, 5)) {
+    // Requirement 4.10: Skip results without traceable source URL
+    if (!result.url) continue;
+
     const snippet = (result.description || "").toLowerCase();
     const title = (result.title || "").toLowerCase();
     const combined = `${title} ${snippet}`;
 
-    for (const keyword of paymentKeywords) {
+    // Requirement 4.9: Treat web content as untrusted — ignore embedded instructions
+    if (containsSuspiciousContent(combined)) continue;
+
+    for (const { keyword, signal, dimension } of paymentKeywords) {
       if (combined.includes(keyword)) {
         const reliability = getSourceReliability(result.url, account);
         const confidence = getConfidenceFromReliability(reliability);
 
         cards.push({
-          id: `ev-web-${crypto.randomUUID().slice(0, 8)}`,
-          signalType: mapKeywordToSignalType(keyword),
+          id: `ev-web-${generateId()}`,
+          signalType: signal,
           evidenceType: "observed",
-          rawEvidence: (result.description || "").slice(0, 500),
-          sourceLabel: new URL(result.url).hostname,
+          rawEvidence: sanitizeEvidence(result.description || "").slice(0, 500),
+          sourceLabel: extractHostname(result.url),
           sourceUrl: result.url,
           sourceOrigin: "web",
           sourceReliability: reliability,
@@ -95,7 +147,7 @@ function extractEvidenceFromResults(account: Account, data: any): EvidenceCard[]
           confidenceLevel: confidence,
           whyItMatters: `Evidence of ${keyword} activity suggests payment complexity at ${account.name}.`,
           suggestedOutreachAngle: `Reference their ${keyword} operations in outreach.`,
-          dimension: mapKeywordToDimension(keyword),
+          dimension: dimension,
         });
         break; // One card per result
       }
@@ -105,47 +157,117 @@ function extractEvidenceFromResults(account: Account, data: any): EvidenceCard[]
   return cards;
 }
 
-function getSourceReliability(url: string, account: Account): SourceReliability {
+// --- Source Reliability Classification (Requirement 4.5) ---
+
+/**
+ * Assign source reliability using three-tier scale:
+ * - high: company websites, official careers pages, official documentation
+ * - medium: named news publications, press releases, funding databases
+ * - low: generic search snippets, forums, inferred metadata
+ */
+function getSourceReliability(
+  url: string,
+  account: Account
+): SourceReliability {
   try {
-    const hostname = new URL(url).hostname;
+    const hostname = new URL(url).hostname.toLowerCase();
+
     // High: company's own website
-    if (account.website && hostname.includes(account.website.replace(/https?:\/\//, "").replace("www.", ""))) {
-      return "high";
+    if (account.website) {
+      const accountHost = account.website
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .toLowerCase();
+      if (hostname.includes(accountHost) || accountHost.includes(hostname)) {
+        return "high";
+      }
     }
-    // Medium: known news/funding sources
-    if (["techcrunch.com", "crunchbase.com", "reuters.com", "bloomberg.com"].some(d => hostname.includes(d))) {
+
+    // Medium: known news/funding/tech sources
+    const mediumSources = [
+      "techcrunch.com",
+      "crunchbase.com",
+      "reuters.com",
+      "bloomberg.com",
+      "forbes.com",
+      "businessinsider.com",
+      "venturebeat.com",
+      "pitchbook.com",
+      "linkedin.com",
+      "glassdoor.com",
+    ];
+    if (mediumSources.some((d) => hostname.includes(d))) {
       return "medium";
     }
+
     return "low";
   } catch {
     return "low";
   }
 }
 
-function getConfidenceFromReliability(reliability: SourceReliability): ConfidenceLevel {
+function getConfidenceFromReliability(
+  reliability: SourceReliability
+): ConfidenceLevel {
   if (reliability === "high") return "high";
   if (reliability === "medium") return "medium";
   return "low";
 }
 
-function mapKeywordToSignalType(keyword: string): import("@/types").SignalType {
-  if (keyword.includes("payout") || keyword.includes("marketplace")) return "complex_payouts";
-  if (keyword.includes("reconciliation")) return "manual_reconciliation";
-  if (keyword.includes("billing") || keyword.includes("subscription")) return "billing_operations";
-  if (keyword.includes("multi-currency") || keyword.includes("international")) return "multi_country";
-  if (keyword.includes("bill.com") || keyword.includes("sap") || keyword.includes("tipalti") || keyword.includes("netsuite")) return "legacy_tools";
-  return "other";
+// --- Security: Untrusted Content Handling (Requirement 4.9) ---
+
+/**
+ * Check for suspicious content that might attempt to modify system behavior.
+ * Reject results containing prompt injection patterns.
+ */
+function containsSuspiciousContent(text: string): boolean {
+  const suspiciousPatterns = [
+    "ignore previous",
+    "ignore all instructions",
+    "system prompt",
+    "you are now",
+    "disregard",
+    "override",
+    "new instructions",
+  ];
+  return suspiciousPatterns.some((pattern) => text.includes(pattern));
 }
 
-function mapKeywordToDimension(keyword: string): import("@/types").ScoringDimension {
-  if (["payout", "reconciliation", "multi-currency", "marketplace", "chargeback", "refund"].some(k => keyword.includes(k))) {
-    return "payment_complexity";
+/**
+ * Sanitize evidence text — strip potential injection content.
+ */
+function sanitizeEvidence(text: string): string {
+  return text
+    .replace(/[<>]/g, "") // Strip HTML-like tags
+    .replace(/\{[^}]*\}/g, "") // Strip template-like content
+    .trim();
+}
+
+// --- Utility Functions ---
+
+function extractHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "unknown";
   }
-  if (["international", "subscription"].some(k => keyword.includes(k))) {
-    return "operational_urgency";
+}
+
+function generateId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID().slice(0, 8);
   }
-  if (["bill.com", "sap", "tipalti", "netsuite"].some(k => keyword.includes(k))) {
-    return "automation_fit";
-  }
-  return "payment_complexity";
+  return Math.random().toString(36).slice(2, 10);
+}
+
+interface WebResult {
+  title?: string;
+  description?: string;
+  url?: string;
+}
+
+interface PaymentKeyword {
+  keyword: string;
+  signal: SignalType;
+  dimension: ScoringDimension;
 }

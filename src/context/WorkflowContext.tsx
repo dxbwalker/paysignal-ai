@@ -11,6 +11,7 @@ import type {
   CampaignFeedback,
 } from "@/types";
 import { cache } from "@/lib/cache";
+import { redactLog } from "@/lib/log-redaction";
 
 // --- Constants ---
 
@@ -254,7 +255,7 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
     (stage: WorkflowStageName, message: string) => {
       dispatch({
         type: "ADD_LOG",
-        entry: { stage, message: message.slice(0, 280) },
+        entry: { stage, message: redactLog(message).slice(0, 280) },
       });
     },
     [dispatch]

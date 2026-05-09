@@ -1,11 +1,30 @@
 import type { Account } from "@/types";
 import { useState } from "react";
+import { useWorkflow } from "@/context/WorkflowContext";
 
 type Channel = "email" | "linkedin" | "call" | "followup" | "questions";
 
 export function OutreachPackView({ account }: { account: Account }) {
+  const { isSuppressed } = useWorkflow();
   const pack = account.outreachPack;
   const [activeChannel, setActiveChannel] = useState<Channel>("email");
+
+  // Block outreach viewing for suppressed accounts (Req 9.13)
+  if (account.suppressedAt || isSuppressed(account.id)) {
+    return (
+      <div className="text-center py-8 space-y-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+          <svg className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          <span className="text-xs text-red-400 font-medium">Suppressed</span>
+        </div>
+        <p className="text-gray-500 text-sm">
+          This account is on the suppression list. Outreach generation and viewing is blocked.
+        </p>
+      </div>
+    );
+  }
 
   if (!pack) {
     if (account.opportunityScore && account.opportunityScore.total < 60) {
