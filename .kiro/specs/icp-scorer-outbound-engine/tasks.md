@@ -289,3 +289,188 @@
 - [x] Demo workflow completes in <90 seconds with no API keys configured
 - [x] Activity log shows decision rationale at every stage
 - [x] Demo script runs end-to-end without typing anything except optional presenter narration
+
+
+---
+
+## Phase 4 — Premium UX & Agentic Outreach
+
+**Objective:** Transform PaySignal AI from a functional dashboard into a premium agentic command centre. The backend is complete — this phase is purely about product feel, visual quality, and making the outreach experience feel autonomous rather than passive.
+
+**Priority order:** Resizable layout → Visual redesign → Agentic outreach types + strategy → Agent Outreach UI → Presentation mode
+
+---
+
+### Task 20: Resizable Command Centre Layout
+- [ ] 1. Install `react-resizable-panels` (already added to package.json)
+- [ ] 2. Replace fixed CSS grid in `ThreePanelLayout.tsx` with `PanelGroup` + `Panel` components from react-resizable-panels
+- [ ] 3. Left panel: default 22%, min 15%, max 35%, collapsible (collapses after search plan approved)
+- [ ] 4. Center panel: default 33%, min 25%, flexible
+- [ ] 5. Right panel: default 45%, min 30% — can expand into "focus mode" when left panel is collapsed
+- [ ] 6. Bottom activity log: vertical panel group, default 25%, min 10%, max 40%, collapsible
+- [ ] 7. Create styled `ResizeHandle` component — thin line with hover state (brand color glow on hover/drag)
+- [ ] 8. Persist panel sizes in localStorage via `onLayout` callback (key: `paysignal:panel-sizes`)
+- [ ] 9. Add "Reset Layout" button in the bottom-right corner that restores default panel sizes
+- [ ] 10. Verify layout remains usable at 1280px width (laptop) and 1920px+ (large monitor)
+
+**Files to modify:** `src/components/layout/ThreePanelLayout.tsx`, `src/pages/index.tsx`
+**New dependencies:** `react-resizable-panels` (already installed)
+
+---
+
+### Task 21: Premium Visual Redesign
+- [ ] 1. Update `tailwind.config.js` with richer dark palette: background deep navy (#0a0e1a), panels layered dark blue with subtle gradient, primary accent electric blue/cyan, opportunity green, warning amber, risk muted red
+- [ ] 2. Add custom utilities: `bg-glow-brand` (radial gradient behind high-value accounts), `shadow-glow` (subtle blue glow for selected state), `animate-fade-in`, `animate-slide-up`, `animate-pulse-slow`
+- [ ] 3. Update `globals.css`: add `.panel-glass` class (backdrop-blur, subtle border, inner shadow), improve scrollbar styling, add focus ring styles
+- [ ] 4. Redesign `AccountCard.tsx`: add gradient left border for high-score accounts, subtle glow on selected state, "why now" one-liner below company name, mini confidence indicator, stronger typography hierarchy
+- [ ] 5. Redesign `ScoreBreakdown.tsx`: replace plain bars with gradient-filled bars, add score ring/arc for total score, add animated fill on mount, improve dimension labels with icons
+- [ ] 6. Redesign `EvidenceCardList.tsx`: add left-border color by confidence (green/amber/gray), improve source attribution layout, add hover expand for long evidence text, add evidence type pill with icon
+- [ ] 7. Redesign `BottomPanel.tsx` as "Agent Decision Stream": use first-person commercial language for entries, group by stage with subtle dividers, add stage completion icons, improve timestamp styling
+- [ ] 8. Redesign `WorkflowProgress.tsx`: replace text-only strip with connected node visualization (circles connected by lines, filled/animated when complete, pulsing when running)
+- [ ] 9. Update all buttons: add hover scale transform, improve disabled states, add subtle gradient to primary buttons
+- [ ] 10. Add `DemoModeBadge` redesign: make it look intentional/premium (not a warning) — use a subtle pill with "Synthetic Demo" label and a small info icon
+- [ ] 11. Improve right-panel tab bar: add underline animation on tab switch, increase touch targets, add subtle background on active tab
+- [ ] 12. Add micro-interactions: fade-in for new accounts appearing, slide-up for evidence cards loading, smooth transitions on panel content changes
+
+**Files to modify:** `tailwind.config.js`, `src/styles/globals.css`, `src/components/center-panel/AccountCard.tsx`, `src/components/center-panel/AccountList.tsx`, `src/components/right-panel/ScoreBreakdown.tsx`, `src/components/right-panel/EvidenceCardList.tsx`, `src/components/layout/BottomPanel.tsx`, `src/components/center-panel/WorkflowProgress.tsx`, `src/components/shared/DemoModeBadge.tsx`, `src/components/right-panel/AccountDetail.tsx`
+
+---
+
+### Task 22: Agentic Outreach Strategy (Types + Generation)
+- [ ] 1. Add new types to `src/types/index.ts`: `OutreachStrategy` and `OutreachSequenceStep`
+```typescript
+interface OutreachStrategy {
+  id: string;
+  accountId: string;
+  primaryPersonaId?: string;
+  recommendedPersonaTitle: string;
+  recommendedAngle: string;
+  rationale: string; // why this persona + angle
+  sequence: OutreachSequenceStep[];
+  successHypothesis: string;
+  risks: string[];
+  fallbackPlan: string;
+  confidence: ConfidenceLevel;
+  generatedAt: string;
+}
+
+interface OutreachSequenceStep {
+  id: string;
+  dayOffset: number;
+  channel: "linkedin" | "email" | "call" | "follow_up";
+  objective: string;
+  message: string;
+  claimEvidenceIds: string[];
+  status: "draft" | "approved" | "copied" | "contacted" | "replied" | "skipped";
+}
+```
+- [ ] 2. Add `outreachStrategy?: OutreachStrategy` field to the `Account` interface
+- [ ] 3. Create `src/lib/outreach-strategy.ts` — generates an OutreachStrategy for each outreach-ready account:
+  - Select primary persona based on evidence alignment (not just title rank)
+  - Choose recommended angle from strongest evidence card's `suggestedOutreachAngle`
+  - Generate rationale explaining why this persona + angle combination
+  - Build 4-step sequence: Day 1 LinkedIn → Day 2 Email → Day 5 Follow-up → Day 7 Call
+  - Generate success hypothesis ("If they respond, it will likely be because...")
+  - Identify 1-2 risks ("Evidence is inferred", "No direct email available")
+  - Generate fallback plan ("If no response from Head of Payments, try CFO with finance ops angle")
+  - Assign confidence based on evidence quality for the chosen angle
+- [ ] 4. Each sequence step generates a message using existing outreach-templates logic, with `claimEvidenceIds` populated
+- [ ] 5. Update `src/lib/demo-data.ts` — add precomputed `OutreachStrategy` to the 3 qualifying seed accounts (MarketFlow, GigConnect, CloudScale)
+- [ ] 6. Create `src/pages/api/generate-strategy.ts` — generates strategy for a given account, uses template-based logic (LLM optional)
+- [ ] 7. Add Zod schema for `OutreachStrategy` and `OutreachSequenceStep` in `src/lib/schemas.ts`
+
+**Files to create:** `src/lib/outreach-strategy.ts`, `src/pages/api/generate-strategy.ts`
+**Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`
+
+---
+
+### Task 23: Agent Outreach UI
+- [ ] 1. Replace current `OutreachPackView.tsx` with new `AgentOutreachView.tsx` — restructured from passive tabs to agentic strategy view
+- [ ] 2. Create `src/components/right-panel/AgentRecommendation.tsx` — prominent card at top showing: recommended persona, recommended angle, confidence, and rationale. Example: "Start with Head of Payments through LinkedIn. Use the multi-country payout and reconciliation angle. Confidence: High."
+- [ ] 3. Create `src/components/right-panel/OutreachTimeline.tsx` — vertical timeline showing the 4-step sequence:
+  - Each step shows: day offset, channel icon, objective, status badge
+  - Clicking a step expands to show the generated message + evidence references
+  - Steps can be individually approved, copied, or skipped
+  - Completed steps show outcome (contacted/replied/no response)
+- [ ] 4. Create `src/components/right-panel/NextBestAction.tsx` — shows the single most important next action for this account. Examples: "Send LinkedIn connection message", "Wait for response (Day 2)", "Try CFO instead — no response from Head of Payments"
+- [ ] 5. Add action buttons below timeline: "Approve Sequence", "Regenerate Strategy", "Change Persona", "Change Angle"
+- [ ] 6. "Regenerate Strategy" re-calls the strategy API with different parameters
+- [ ] 7. "Change Persona" shows a dropdown of available personas and regenerates with the selected one
+- [ ] 8. "Change Angle" shows available evidence angles and regenerates with the selected one
+- [ ] 9. Update `AccountDetail.tsx` tabs: rename "Outreach" tab to "Agent Plan", replace content with `AgentOutreachView`
+- [ ] 10. Add evidence chips in each message: small clickable pills showing which evidence card is referenced (e.g., "ev-mf-1: seller payouts"), clicking scrolls to that evidence card in the Evidence tab
+- [ ] 11. Add "Risks & Fallback" collapsible section below the timeline showing strategy risks and fallback plan
+
+**Files to create:** `src/components/right-panel/AgentOutreachView.tsx`, `src/components/right-panel/AgentRecommendation.tsx`, `src/components/right-panel/OutreachTimeline.tsx`, `src/components/right-panel/NextBestAction.tsx`
+**Files to modify:** `src/components/right-panel/AccountDetail.tsx`
+**Files to remove:** `src/components/right-panel/OutreachPackView.tsx` (replaced by AgentOutreachView)
+
+---
+
+### Task 24: Enhanced Account List & Filters
+- [ ] 1. Add "Top Opportunity" hero card at the top of the account list for the highest-scoring account — larger card with gradient background, score ring, "why now" line, and primary persona name
+- [ ] 2. Add filter bar above account list: All | Outreach Ready | Research | Deprioritized | High Confidence
+- [ ] 3. Update `AccountCard.tsx` to show: mini 5-bar score breakdown (tiny horizontal bars), confidence indicator (dot: green/amber/gray), "why now" one-liner from `whyThisAccountWhyNow` or top factor
+- [ ] 4. Add account count per filter in the filter bar (e.g., "Outreach Ready (3)")
+- [ ] 5. Improve selected state: subtle glow border, slightly elevated appearance, brand-colored left accent
+
+**Files to modify:** `src/components/center-panel/AccountList.tsx`, `src/components/center-panel/AccountCard.tsx`
+
+---
+
+### Task 25: Agent Decision Stream (Activity Log Upgrade)
+- [ ] 1. Rewrite `BottomPanel.tsx` as `AgentDecisionStream.tsx`
+- [ ] 2. Change log entry language from technical to first-person commercial: "I found 5 accounts..." instead of "Found 5 accounts..."
+- [ ] 3. Group entries by workflow stage with subtle stage headers and completion indicators
+- [ ] 4. Add entry type icons: 🔍 discovery, 📊 scoring, 👤 persona, 📝 outreach, ⚠️ warning, ✓ completion
+- [ ] 5. Add "key decision" highlighting for important entries (e.g., deprioritization reasons, persona selection rationale)
+- [ ] 6. Add collapse/expand toggle and "Clear log" button
+- [ ] 7. Update `demo-scenario.ts` narrative labels to use first-person commercial language
+
+**Files to create:** `src/components/layout/AgentDecisionStream.tsx`
+**Files to modify:** `src/lib/demo-scenario.ts`, `src/pages/index.tsx`
+**Files to remove:** `src/components/layout/BottomPanel.tsx` (replaced)
+
+---
+
+### Task 26: Presentation Mode
+- [ ] 1. Add `presentationMode: boolean` to WorkflowState and a toggle button (top-right corner, keyboard shortcut `P`)
+- [ ] 2. When active: collapse left panel, expand right panel to ~65% width, hide mode toggle and compliance notice, enlarge font sizes by 1 step
+- [ ] 3. Add keyboard shortcuts: `1` Score, `2` Evidence, `3` Brief, `4` Agent Plan, `5` Reject TinyBooks, `→` next account, `←` previous account
+- [ ] 4. Add "Run Demo" button that auto-executes the demo scenario: loads preset ICP, runs workflow, selects MarketFlow, pauses for presenter narration between steps
+- [ ] 5. Show a subtle "Presentation Mode" indicator in the top-right
+- [ ] 6. In presentation mode, activity log shows only key decision entries (filter out routine stage transitions)
+
+**Files to modify:** `src/context/WorkflowContext.tsx`, `src/pages/index.tsx`, `src/components/layout/ThreePanelLayout.tsx`, `src/components/right-panel/AccountDetail.tsx`
+
+---
+
+### Task 27: Autopilot Simulation
+- [ ] 1. Add "Run Outreach Simulation" button in the Agent Plan tab for the selected account
+- [ ] 2. When clicked, animate through the strategy steps with 1.5s delay between each:
+  - Step 1: "Selected [persona] as primary contact" — highlight persona
+  - Step 2: "Chose [channel] first because [rationale]" — highlight channel in timeline
+  - Step 3: "Generated evidence-backed opening message" — expand message
+  - Step 4: "Scheduled follow-up after [N] days if no reply" — show next step
+  - Step 5: "If no response, switch to [fallback persona] with [fallback angle]" — show fallback
+- [ ] 3. Each simulation step appends to the Agent Decision Stream
+- [ ] 4. After simulation completes, show "Simulation complete — approve sequence to proceed" with approve button
+- [ ] 5. Add a "Reset Simulation" button to replay
+
+**Files to modify:** `src/components/right-panel/AgentOutreachView.tsx`, `src/components/layout/AgentDecisionStream.tsx`
+
+---
+
+## Phase 4 Quality Gates
+
+- [ ] Panels are resizable and sizes persist across page reloads
+- [ ] Left panel collapses cleanly; right panel expands to fill space
+- [ ] Visual theme feels premium — no flat/dull empty space, clear hierarchy
+- [ ] Selected account has visible glow/emphasis
+- [ ] Agent Outreach Plan shows strategy + timeline (not just static messages)
+- [ ] Each timeline step has a generated message with evidence chips
+- [ ] "Next Best Action" is always visible for the selected account
+- [ ] Presentation mode works with keyboard shortcuts
+- [ ] Autopilot simulation animates through strategy steps convincingly
+- [ ] Activity log reads like an intelligent agent explaining decisions, not a system log
+- [ ] Demo runs smoothly without typing (preset ICP → auto-flow → select → reject → done)
