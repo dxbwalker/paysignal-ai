@@ -5,6 +5,8 @@
 @layer base {
   body {
     @apply bg-surface text-gray-100 antialiased font-sans;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   /* Premium scrollbar */
@@ -19,6 +21,16 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-600;
+  }
+
+  /* Better text rendering */
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+  }
+
+  /* Generated content readability */
+  .content-readable {
+    @apply text-sm leading-[1.7] text-gray-300;
   }
 }
 

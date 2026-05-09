@@ -187,7 +187,7 @@ export function AccountList() {
       {/* Filter bar */}
       <div className="px-3 pt-3 pb-2 border-b border-white/5">
         <div className="flex items-center gap-1 overflow-x-auto">
-          {FILTERS.map((f) => {
+          {FILTERS.slice(0, 4).map((f) => {
             const count = getFilterCount(state.accounts, f.id);
             return (
               <button
@@ -203,6 +203,26 @@ export function AccountList() {
               </button>
             );
           })}
+          {/* More filters */}
+          <details className="relative">
+            <summary className="text-[10px] px-2 py-1 rounded-md text-gray-600 hover:text-gray-400 cursor-pointer">
+              More
+            </summary>
+            <div className="absolute top-full left-0 mt-1 bg-surface-raised border border-white/10 rounded-lg p-1 z-10 flex flex-col gap-0.5">
+              {FILTERS.slice(4).map((f) => {
+                const count = getFilterCount(state.accounts, f.id);
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
+                    className="text-[10px] px-2 py-1 rounded text-gray-400 hover:text-white hover:bg-white/5 text-left whitespace-nowrap"
+                  >
+                    {f.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </details>
         </div>
       </div>
 
