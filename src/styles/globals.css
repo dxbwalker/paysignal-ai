@@ -27,6 +27,11 @@
     @apply bg-surface-raised border border-gray-800 rounded-xl;
   }
 
+  .panel-glass {
+    @apply bg-surface-raised/80 border-white/5;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
   .panel-header {
     @apply px-4 py-3 border-b border-gray-800 font-semibold text-sm text-gray-300;
   }

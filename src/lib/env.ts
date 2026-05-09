@@ -11,6 +11,10 @@ export interface EnvConfig {
   llmApiKey: string | null;
   llmProvider: "openai" | "anthropic" | null;
   webSearchApiKey: string | null;
+  mongodbUri: string | null;
+  mongodbDbName: string;
+  mongodbEnabled: boolean;
+  mongodbModelApiKey: string | null;
   defaultMode: Mode;
   capabilities: ProviderCapability;
 }
@@ -19,9 +23,13 @@ export function getEnvConfig(): EnvConfig {
   assertServerSide();
 
   const apifyApiKey = process.env.APIFY_API_KEY || null;
-  const llmApiKey = process.env.LLM_API_KEY || null;
-  const llmProvider = (process.env.LLM_PROVIDER as "openai" | "anthropic") || null;
+  const llmApiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || null;
+  const llmProvider = (process.env.LLM_PROVIDER as "openai" | "anthropic") || (process.env.OPENAI_API_KEY ? "openai" : null);
   const webSearchApiKey = process.env.WEB_SEARCH_API_KEY || null;
+  const mongodbUri = process.env.MONGODB_URI || null;
+  const mongodbDbName = process.env.MONGODB_DB_NAME || "paysignal";
+  const mongodbEnabled = process.env.MONGODB_ENABLE_PERSISTENCE === "true" && !!mongodbUri;
+  const mongodbModelApiKey = process.env.MONGODB_MODEL_API_KEY || null;
 
   // Determine default mode based on available keys
   const hasAnyLiveKey = !!(apifyApiKey || webSearchApiKey);
@@ -40,6 +48,10 @@ export function getEnvConfig(): EnvConfig {
     llmApiKey,
     llmProvider,
     webSearchApiKey,
+    mongodbUri,
+    mongodbDbName,
+    mongodbEnabled,
+    mongodbModelApiKey,
     defaultMode,
     capabilities,
   };

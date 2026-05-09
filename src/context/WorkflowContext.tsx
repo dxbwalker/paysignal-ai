@@ -54,6 +54,8 @@ function createInitialState(): WorkflowState {
     suppressionList: loadSuppressionList(),
     timeBudgetStartMs: undefined,
     selectedAccountId: undefined,
+    campaignId: undefined,
+    persistenceStatus: "none",
   };
 }
 
@@ -76,6 +78,8 @@ export type WorkflowAction =
   | { type: "SUPPRESS_REMOVE"; id: string }
   | { type: "SET_CAMPAIGN_OUTCOME"; accountId: string; outcome: CampaignOutcome }
   | { type: "SET_CAMPAIGN_FEEDBACK"; feedback: CampaignFeedback }
+  | { type: "SET_CAMPAIGN_ID"; campaignId: string }
+  | { type: "SET_PERSISTENCE_STATUS"; status: "none" | "saving" | "saved" | "failed" }
   | { type: "CLEAR_DATA" }
   | { type: "RESET" };
 
@@ -212,6 +216,12 @@ function reducer(state: WorkflowState, action: WorkflowAction): WorkflowState {
     case "CLEAR_DATA":
       cache.remove(SUPPRESSION_LIST_KEY);
       return createInitialState();
+
+    case "SET_CAMPAIGN_ID":
+      return { ...state, campaignId: action.campaignId };
+
+    case "SET_PERSISTENCE_STATUS":
+      return { ...state, persistenceStatus: action.status };
 
     case "RESET":
       return {

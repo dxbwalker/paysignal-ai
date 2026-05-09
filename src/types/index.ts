@@ -273,6 +273,8 @@ export interface WorkflowState {
   campaignFeedback?: CampaignFeedback;
   timeBudgetStartMs?: number;
   selectedAccountId?: string;
+  campaignId?: string;
+  persistenceStatus: "none" | "saving" | "saved" | "failed";
 }
 
 // --- Provider Capability ---
