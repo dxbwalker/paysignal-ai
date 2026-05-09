@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:seed": "npx tsx scripts/validate-seed-data.ts",
+    "validate:scoring": "npx tsx scripts/validate-scoring.ts",
+    "validate:bundle": "npx tsx scripts/check-client-bundle.ts",
+    "validate:demo": "npx tsx scripts/validate-demo-workflow.ts",
+    "validate:all": "npm run validate:seed && npm run validate:scoring && npm run validate:bundle && npm run validate:demo"
   },
   "dependencies": {
     "dotenv": "^16.4.0",

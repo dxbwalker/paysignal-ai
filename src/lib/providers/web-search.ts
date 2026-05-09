@@ -8,6 +8,7 @@
  * - Normalized EvidenceCard output with source attribution
  * - Source reliability classification (3-tier: high/medium/low)
  * - Treats web content as untrusted input (Requirement 4.9)
+ * - Graceful error handling: returns empty results on failure, never throws (Requirement 12.2)
  */
 
 import type {
@@ -21,8 +22,16 @@ import type {
 
 const TIMEOUT_MS = 30_000;
 
+export interface WebSearchResult {
+  cards: EvidenceCard[];
+  error?: string;
+}
+
 export interface WebSearchProvider {
+  /** Enrich account with web evidence. Returns empty array on failure (never throws). */
   enrichAccount(account: Account, apiKey: string): Promise<EvidenceCard[]>;
+  /** Enrich with detailed result including error info for logging. */
+  enrichAccountWithStatus(account: Account, apiKey: string): Promise<WebSearchResult>;
 }
 
 export function createWebSearchProvider(): WebSearchProvider {
@@ -31,6 +40,14 @@ export function createWebSearchProvider(): WebSearchProvider {
       account: Account,
       apiKey: string
     ): Promise<EvidenceCard[]> {
+      const result = await this.enrichAccountWithStatus(account, apiKey);
+      return result.cards;
+    },
+
+    async enrichAccountWithStatus(
+      account: Account,
+      apiKey: string
+    ): Promise<WebSearchResult> {
       // Build search query from account data
       const query = buildSearchQuery(account);
 
@@ -54,14 +71,24 @@ export function createWebSearchProvider(): WebSearchProvider {
         clearTimeout(timeout);
 
         if (!response.ok) {
-          throw new Error(`Web search API error: ${response.status}`);
+          return {
+            cards: [],
+            error: `Web search API error: ${response.status}`,
+          };
         }
 
         const data = await response.json();
-        return extractEvidenceFromResults(account, data);
+        return { cards: extractEvidenceFromResults(account, data) };
       } catch (error) {
         clearTimeout(timeout);
-        throw error;
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const isTimeout = message.includes("abort");
+        return {
+          cards: [],
+          error: isTimeout
+            ? "Web search API timed out after 30s"
+            : `Web search API failed: ${message}`,
+        };
       }
     },
   };

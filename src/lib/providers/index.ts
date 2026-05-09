@@ -2,9 +2,10 @@
  * Provider factory — selects demo/live provider based on env config and mode.
  * Returns a capability matrix indicating which capabilities are live, demo, cached, or unavailable.
  *
- * Fallback behavior (Requirements 2.9, 4.8, 5.9, 7.9):
+ * Fallback behavior (Requirements 2.9, 4.8, 5.9, 7.9, 12.2):
  * - Each provider gracefully falls back to demo/template on failure
  * - Errors are caught and logged, never interrupt the workflow
+ * - Individual provider failures don't affect other providers
  */
 
 import type {
@@ -51,12 +52,13 @@ export function createProviders(): ProviderSet {
         return demo.discover(searchPlan);
       }
 
-      try {
-        return await apify.discover(searchPlan, env.apifyApiKey!);
-      } catch {
+      // Live mode: Apify provider handles errors gracefully (returns empty on failure)
+      const result = await apify.discoverWithStatus(searchPlan, env.apifyApiKey!);
+      if (result.error || result.accounts.length === 0) {
         // Fallback to demo on failure (Requirement 2.9)
         return demo.discover(searchPlan);
       }
+      return result.accounts;
     },
 
     async enrich(accounts: Account[], mode: Mode): Promise<Account[]> {
@@ -71,19 +73,19 @@ export function createProviders(): ProviderSet {
 
       const enriched = await Promise.allSettled(
         top5.map(async (account) => {
-          try {
-            const newCards = await webSearch.enrichAccount(
-              account,
-              env.webSearchApiKey!
-            );
+          // Web search provider handles errors gracefully (returns empty on failure)
+          const result = await webSearch.enrichAccountWithStatus(
+            account,
+            env.webSearchApiKey!
+          );
+          if (result.cards.length > 0) {
             return {
               ...account,
-              evidenceCards: [...account.evidenceCards, ...newCards],
+              evidenceCards: [...account.evidenceCards, ...result.cards],
               status: "enriched" as const,
             };
-          } catch {
-            return account; // Keep original on failure
           }
+          return account; // Keep original if no cards returned
         })
       );
 
@@ -102,11 +104,9 @@ export function createProviders(): ProviderSet {
         return []; // Demo enrichment handled at account level
       }
 
-      try {
-        return await webSearch.enrichAccount(account, env.webSearchApiKey!);
-      } catch {
-        return [];
-      }
+      // Web search provider handles errors gracefully (returns empty on failure)
+      const result = await webSearch.enrichAccountWithStatus(account, env.webSearchApiKey!);
+      return result.cards;
     },
 
     async scoreWithLlm(
@@ -126,19 +126,22 @@ export function createProviders(): ProviderSet {
         );
       }
 
-      try {
-        return await llm.scoreAccounts(
-          accounts,
-          icpDescription,
-          env.llmApiKey,
-          env.llmProvider
-        );
-      } catch {
+      // LLM provider handles errors gracefully via status method
+      const result = await llm.scoreAccountsWithStatus(
+        accounts,
+        icpDescription,
+        env.llmApiKey,
+        env.llmProvider
+      );
+
+      if (result.error || !result.data) {
         // Requirement 5.9: fallback to rule-based scoring
         throw new Error(
-          "LLM scoring failed — use rule-based fallback"
+          result.error || "LLM scoring failed — use rule-based fallback"
         );
       }
+
+      return result.data;
     },
 
     async generateOutreach(
@@ -154,15 +157,15 @@ export function createProviders(): ProviderSet {
         env.llmApiKey &&
         env.llmProvider
       ) {
-        try {
-          return await llm.generateOutreach(
-            account,
-            env.llmApiKey,
-            env.llmProvider
-          );
-        } catch {
-          // Fallback to demo/template (Requirement 7.9)
+        const result = await llm.generateOutreachWithStatus(
+          account,
+          env.llmApiKey,
+          env.llmProvider
+        );
+        if (result.data) {
+          return result.data;
         }
+        // Fallback to demo/template (Requirement 7.9)
       }
 
       return demo.generateOutreach(account);
@@ -181,15 +184,15 @@ export function createProviders(): ProviderSet {
         env.llmApiKey &&
         env.llmProvider
       ) {
-        try {
-          return await llm.generateBrief(
-            account,
-            env.llmApiKey,
-            env.llmProvider
-          );
-        } catch {
-          // Fallback to demo/template
+        const result = await llm.generateBriefWithStatus(
+          account,
+          env.llmApiKey,
+          env.llmProvider
+        );
+        if (result.data) {
+          return result.data;
         }
+        // Fallback to demo/template
       }
 
       return demo.generateBrief(account);

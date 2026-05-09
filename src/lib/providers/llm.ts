@@ -7,7 +7,7 @@
  * - Scoring: LLM proposes sub-scores, final calculation uses predefined weights (Requirement 5.8, 5.11)
  * - Generation: Outreach packs and opportunity briefs (Requirements 7.1-7.10, 8.1-8.9)
  * - 30s timeout on all API calls
- * - Graceful error propagation for fallback handling
+ * - Graceful error propagation for fallback handling (Requirement 12.2)
  */
 
 import type {
@@ -19,6 +19,11 @@ import type {
 } from "@/types";
 
 const TIMEOUT_MS = 30_000;
+
+export interface LlmResult<T> {
+  data?: T;
+  error?: string;
+}
 
 export interface LlmProvider {
   scoreAccounts(
@@ -37,6 +42,25 @@ export interface LlmProvider {
     apiKey: string,
     provider: string
   ): Promise<AccountOpportunityBrief>;
+  /** Score with detailed error info for fallback logging. */
+  scoreAccountsWithStatus(
+    accounts: Account[],
+    icpDescription: string,
+    apiKey: string,
+    provider: string
+  ): Promise<LlmResult<Account[]>>;
+  /** Generate outreach with detailed error info for fallback logging. */
+  generateOutreachWithStatus(
+    account: Account,
+    apiKey: string,
+    provider: string
+  ): Promise<LlmResult<OutreachPack>>;
+  /** Generate brief with detailed error info for fallback logging. */
+  generateBriefWithStatus(
+    account: Account,
+    apiKey: string,
+    provider: string
+  ): Promise<LlmResult<AccountOpportunityBrief>>;
 }
 
 export function createLlmProvider(): LlmProvider {
@@ -47,61 +71,76 @@ export function createLlmProvider(): LlmProvider {
       apiKey: string,
       provider: string
     ): Promise<Account[]> {
-      // LLM scoring: proposes sub-scores but final calculation uses predefined weights
-      const scored = await Promise.all(
-        accounts.map(async (account) => {
-          try {
-            const dimensions = await llmProposeSubScores(
-              account,
-              icpDescription,
-              apiKey,
-              provider
-            );
-            const total = Math.round(
-              dimensions.reduce((sum, d) => sum + d.subScore * d.weight, 0)
-            );
+      const result = await this.scoreAccountsWithStatus(accounts, icpDescription, apiKey, provider);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
 
-            const topFactors = dimensions
-              .filter((d) => d.subScore >= 60)
-              .sort((a, b) => b.subScore * b.weight - a.subScore * a.weight)
-              .slice(0, 3)
-              .map((d) => d.name);
+    async scoreAccountsWithStatus(
+      accounts: Account[],
+      icpDescription: string,
+      apiKey: string,
+      provider: string
+    ): Promise<LlmResult<Account[]>> {
+      try {
+        // LLM scoring: proposes sub-scores but final calculation uses predefined weights
+        const scored = await Promise.all(
+          accounts.map(async (account) => {
+            try {
+              const dimensions = await llmProposeSubScores(
+                account,
+                icpDescription,
+                apiKey,
+                provider
+              );
+              const total = Math.round(
+                dimensions.reduce((sum, d) => sum + d.subScore * d.weight, 0)
+              );
 
-            const missingFactors = dimensions
-              .filter((d) => d.subScore < 30)
-              .slice(0, 3)
-              .map((d) => d.name);
+              const topFactors = dimensions
+                .filter((d) => d.subScore >= 60)
+                .sort((a, b) => b.subScore * b.weight - a.subScore * a.weight)
+                .slice(0, 3)
+                .map((d) => d.name);
 
-            const recommendedAction =
-              total >= 60
-                ? ("generate_outreach" as const)
-                : total >= 40
-                  ? ("research_further" as const)
-                  : ("deprioritize" as const);
+              const missingFactors = dimensions
+                .filter((d) => d.subScore < 30)
+                .slice(0, 3)
+                .map((d) => d.name);
 
-            return {
-              ...account,
-              opportunityScore: {
-                total,
-                dimensions,
-                topFactors,
-                missingFactors,
-                recommendedAction,
-                deprioritizeReason:
-                  total < 40
-                    ? `Low overall score (${total}/100). Key gaps: ${missingFactors.join(", ")}`
-                    : undefined,
-              },
-              status: "scored" as const,
-            };
-          } catch {
-            // If LLM fails for individual account, return unscored
-            return account;
-          }
-        })
-      );
+              const recommendedAction =
+                total >= 60
+                  ? ("generate_outreach" as const)
+                  : total >= 40
+                    ? ("research_further" as const)
+                    : ("deprioritize" as const);
 
-      return scored;
+              return {
+                ...account,
+                opportunityScore: {
+                  total,
+                  dimensions,
+                  topFactors,
+                  missingFactors,
+                  recommendedAction,
+                  deprioritizeReason:
+                    total < 40
+                      ? `Low overall score (${total}/100). Key gaps: ${missingFactors.join(", ")}`
+                      : undefined,
+                },
+                status: "scored" as const,
+              };
+            } catch {
+              // If LLM fails for individual account, return unscored
+              return account;
+            }
+          })
+        );
+        return { data: scored };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown LLM error";
+        return { error: `LLM scoring failed: ${message}` };
+      }
     },
 
     async generateOutreach(
@@ -109,9 +148,24 @@ export function createLlmProvider(): LlmProvider {
       apiKey: string,
       provider: string
     ): Promise<OutreachPack> {
-      const prompt = buildOutreachPrompt(account);
-      const response = await callLlmApi(prompt, apiKey, provider);
-      return parseOutreachResponse(response, account);
+      const result = await this.generateOutreachWithStatus(account, apiKey, provider);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+
+    async generateOutreachWithStatus(
+      account: Account,
+      apiKey: string,
+      provider: string
+    ): Promise<LlmResult<OutreachPack>> {
+      try {
+        const prompt = buildOutreachPrompt(account);
+        const response = await callLlmApi(prompt, apiKey, provider);
+        return { data: parseOutreachResponse(response, account) };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown LLM error";
+        return { error: `LLM outreach generation failed: ${message}` };
+      }
     },
 
     async generateBrief(
@@ -119,9 +173,24 @@ export function createLlmProvider(): LlmProvider {
       apiKey: string,
       provider: string
     ): Promise<AccountOpportunityBrief> {
-      const prompt = buildBriefPrompt(account);
-      const response = await callLlmApi(prompt, apiKey, provider);
-      return parseBriefResponse(response, account);
+      const result = await this.generateBriefWithStatus(account, apiKey, provider);
+      if (result.error) throw new Error(result.error);
+      return result.data!;
+    },
+
+    async generateBriefWithStatus(
+      account: Account,
+      apiKey: string,
+      provider: string
+    ): Promise<LlmResult<AccountOpportunityBrief>> {
+      try {
+        const prompt = buildBriefPrompt(account);
+        const response = await callLlmApi(prompt, apiKey, provider);
+        return { data: parseBriefResponse(response, account) };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown LLM error";
+        return { error: `LLM brief generation failed: ${message}` };
+      }
     },
   };
 }

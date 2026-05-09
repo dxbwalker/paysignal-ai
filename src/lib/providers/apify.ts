@@ -7,6 +7,7 @@
  * - Person-to-account normalization (Requirement 2.3)
  * - Business model classification from metadata (Requirement 2.5)
  * - Deduplication with low-confidence flagging for fuzzy matches (Requirement 2.6, 2.7)
+ * - Graceful error handling: returns empty results on failure, never throws (Requirement 12.2)
  */
 
 import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
@@ -14,13 +15,26 @@ import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
 const ACTOR_ID = "scraper-engine/linkedin-lead-scraper";
 const TIMEOUT_MS = 30_000;
 
+export interface ApifyDiscoverResult {
+  accounts: Account[];
+  error?: string;
+}
+
 export interface ApifyProvider {
+  /** Discover accounts from LinkedIn via Apify. Returns empty array on failure (never throws). */
   discover(searchPlan: SearchPlan, apiKey: string): Promise<Account[]>;
+  /** Discover with detailed result including error info for logging. */
+  discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult>;
 }
 
 export function createApifyProvider(): ApifyProvider {
   return {
     async discover(searchPlan: SearchPlan, apiKey: string): Promise<Account[]> {
+      const result = await this.discoverWithStatus(searchPlan, apiKey);
+      return result.accounts;
+    },
+
+    async discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult> {
       const actorInput = {
         keywords: searchPlan.keywords,
         platform: "Linkedin",
@@ -46,15 +60,25 @@ export function createApifyProvider(): ApifyProvider {
         clearTimeout(timeout);
 
         if (!response.ok) {
-          throw new Error(`Apify API error: ${response.status}`);
+          return {
+            accounts: [],
+            error: `Apify API error: ${response.status}`,
+          };
         }
 
         const data = await response.json();
         const accounts = normalizeApifyResults(data);
-        return deduplicateAccounts(accounts);
+        return { accounts: deduplicateAccounts(accounts) };
       } catch (error) {
         clearTimeout(timeout);
-        throw error;
+        const message = error instanceof Error ? error.message : "Unknown error";
+        const isTimeout = message.includes("abort");
+        return {
+          accounts: [],
+          error: isTimeout
+            ? "Apify API timed out after 30s"
+            : `Apify API failed: ${message}`,
+        };
       }
     },
   };
