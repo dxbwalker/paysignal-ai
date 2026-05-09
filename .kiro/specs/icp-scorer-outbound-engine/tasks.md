@@ -299,7 +299,9 @@
 
 **Core principle:** The product should feel like the agent is guiding the user — recommending, sequencing, and adapting — not like a human manually reading through content tabs.
 
-**Build order:** MongoDB persistence foundation → Resizable layout → Design tokens → Account list + score visuals → Outreach strategy types → Agent Outreach UI → MongoDB campaign memory → MongoDB vector search → Validation
+**Build order:** MongoDB persistence foundation → Resizable layout → Design tokens → Account list + score visuals → Outreach strategy types → Agent Outreach UI → Validation
+
+MongoDB campaign memory and Atlas Vector Search are stretch items and must not block the premium UX and Agent Plan demo.
 
 ---
 
@@ -349,6 +351,29 @@
   - "Save failed — demo continues" (amber) — when write fails
 - [ ] 13. **Fallback rule:** If MongoDB is unavailable, slow, disabled, or misconfigured, the app continues with localStorage and Demo Mode. MongoDB must never block the demo.
 - [ ] 14. Update clear-data behaviour: clear local cache AND offer campaign deletion through API if MongoDB campaign is loaded
+- [ ] 15. **Additional rules:**
+  - MongoDB provider must never be imported by client-side React components
+  - MongoDB writes must be server-side only through API routes
+  - If MongoDB persistence fails, the user-visible workflow result must not change
+  - The save status pill must never block or delay the workflow
+  - Do not persist raw provider responses, prompts, raw LLM outputs, or unnormalised external data
+  - All MongoDB API routes must return `{ success: false, error: "..." }` on failure, never throw raw driver errors to the client
+  - Persistence is non-blocking from the UI: client triggers persistence API call asynchronously and does not wait before rendering results. The API route itself completes or times out within 3 seconds.
+- [ ] 16. Add Campaign model:
+```typescript
+interface Campaign {
+  campaignId: string;
+  icpText: string;
+  searchPlan: SearchPlan;
+  mode: "demo" | "live";
+  createdAt: string;
+  updatedAt: string;
+  status: "draft" | "completed" | "failed";
+  accountCount: number;
+  outreachReadyCount: number;
+  persistenceSource: "mongodb" | "local";
+}
+```
 
 **Acceptance criteria:**
 - App works with no MongoDB config (no env vars set)
@@ -359,76 +384,11 @@
 - Saved campaign can be loaded again
 - Current demo flow still works without any API keys
 - MongoDB writes timeout after 3 seconds without blocking UI
+- MongoDB persistence is invisible to the core demo if unavailable: same accounts, evidence, scores, strategies and UI state appear through Demo Mode/localStorage
 
 **Files to create:** `src/lib/mongodb.ts`, `src/lib/providers/mongodb.ts`, `src/pages/api/persist-campaign.ts`, `src/pages/api/load-campaign.ts`, `src/pages/api/delete-campaign.ts`
 **Files to modify:** `src/lib/env.ts`, `src/lib/workflow-runner.ts`, `src/context/WorkflowContext.tsx`
 **New dependencies:** `mongodb`
-
----
-
-### Task 19.6: MongoDB Campaign Memory
-
-**Objective:** Make MongoDB visible in the product story — users can resume previous campaigns and reuse previous learning.
-
-- [ ] 1. Create `src/lib/campaign-memory.ts`:
-  - `saveCampaignSnapshot()` — called after workflow completion
-  - `loadCampaignSnapshot(campaignId)` — restores full state
-  - `listRecentCampaigns(limit = 10)` — returns campaign summaries
-- [ ] 2. When a campaign is loaded, restore: ICP, Search Plan, accounts, scores, evidence cards, personas, strategies, outcomes, feedback
-- [ ] 3. Add "Recent Campaigns" lightweight UI in the left panel (below mode toggle):
-  - Shows last 3-5 campaigns with ICP summary and account count
-  - Click to load/resume
-- [ ] 4. Add "Resume previous campaign" button
-- [ ] 5. Add "Save campaign" explicit action (even if auto-save is enabled)
-- [ ] 6. Add activity log entries:
-  - "I saved this campaign to MongoDB Atlas so it can be resumed later."
-  - "I loaded a previous campaign with 5 accounts and 3 outreach-ready opportunities."
-- [ ] 7. Create `src/pages/api/list-campaigns.ts` — returns recent campaign summaries
-
-**Acceptance criteria:**
-- User can save and resume a campaign
-- Loading a campaign restores the visible UI state
-- Campaign memory is clearly optional
-- Demo Mode still works if campaign memory fails
-
-**Files to create:** `src/lib/campaign-memory.ts`, `src/pages/api/list-campaigns.ts`
-**Files to modify:** `src/components/left-panel/ICPInput.tsx` (add recent campaigns section)
-
----
-
-### Task 19.7: Atlas Vector Search / Semantic ICP Memory
-
-**Objective:** Add a credible AI-native story — PaySignal compares new ICPs against previous successful campaigns and recommends similar account patterns. Implement AFTER basic persistence is stable.
-
-- [ ] 1. Resolve vector index namespace: create a new vector index on `paysignal.icp_embeddings` collection (do NOT use the existing `duecourse.corpus_chunks` index unless intentional)
-- [ ] 2. Create `src/lib/embeddings.ts`:
-  - `embedText(text: string): Promise<number[]>`
-  - Provider abstraction: use MongoDB Model API key (`MONGODB_MODEL_API_KEY`) or fall back to OpenAI embeddings
-  - Fall back gracefully if no embedding provider is available
-  - Cache embeddings to avoid redundant API calls
-- [ ] 3. Add env vars: `EMBEDDINGS_PROVIDER`, `EMBEDDINGS_API_KEY`, `MONGODB_VECTOR_SEARCH_ENABLED`
-- [ ] 4. Store ICP embedding records: `{ campaignId, icpText, searchPlan, embedding, positiveSignals, winningAccountIds, createdAt }`
-- [ ] 5. Seed at least 5 historical campaign-memory records for demo (ICP text, account patterns, positive outcomes, signal patterns)
-- [ ] 6. Create `findSimilarCampaigns(icpText, limit)`:
-  - Embed current ICP
-  - Run Atlas Vector Search ($vectorSearch aggregation)
-  - Return similar campaigns and successful signal patterns
-- [ ] 7. Create `recommendFromMemory(icpText)`:
-  - Returns suggested keywords, business models, personas that worked before, signals associated with positive outcomes
-- [ ] 8. Add UI card in Search Plan area: "Similar successful campaigns found" — "Past winners had marketplace payouts, reconciliation pressure, and payment ops hiring"
-- [ ] 9. Add activity log entry: "I found 3 similar past campaigns. Marketplace payouts and payment ops hiring were the strongest success signals."
-- [ ] 10. **Fallback rule:** If vector search fails, do not block workflow. Hide semantic memory card or show "Semantic memory unavailable". Continue with existing Search Plan.
-
-**Acceptance criteria:**
-- Vector search is optional and gracefully hidden if unavailable
-- Uses the correct indexed collection (not someone else's collection)
-- Has seeded data so demo produces meaningful results
-- Never blocks the core workflow
-- Produces a visible, understandable product insight
-- Falls back cleanly when embedding API or vector index is unavailable
-
-**Files to create:** `src/lib/embeddings.ts`, `src/lib/semantic-memory.ts`
-**Files to modify:** `src/lib/env.ts`, `src/components/left-panel/SearchPlanEditor.tsx`
 
 ---
 
@@ -443,6 +403,8 @@
 - [ ] 8. Persist panel sizes in localStorage via `onLayout` callback (key: `paysignal:panel-sizes:v1` — versioned to avoid stale layouts)
 - [ ] 9. Add "Reset Layout" button that clears stored sizes and restores defaults
 - [ ] 10. Verify: panel resizing does not break right-panel tabs, minimum sizes prevent unreadable content, layout works at 1280px and 1920px+
+- [ ] 11. Use nested panel structure: Outer vertical PanelGroup → Top workspace (horizontal PanelGroup: left/center/right) + Bottom log panel
+- [ ] 12. Stored layout values must be validated before applying; invalid values restore defaults
 
 **Acceptance criteria:**
 - Panels resize smoothly without jank
@@ -465,6 +427,7 @@
 - [ ] 7. Redesign right-panel tab bar: underline animation on switch, min 36px touch targets, subtle background on active tab
 - [ ] 8. Add micro-interactions: fade-in for new content, smooth transitions on tab changes
 - [ ] 9. **Restraint rule:** Glow ONLY for selected account, top opportunity card, and primary CTA. Target: premium fintech AI, NOT gaming dashboard.
+- [ ] 10. **Accessibility:** All new colours must preserve readable contrast on projectors and laptop screens. Test with reduced contrast.
 
 **Files to modify:** `tailwind.config.js`, `src/styles/globals.css`
 
@@ -474,7 +437,7 @@
 - [ ] 1. Add "Top Opportunity" hero card at top of account list — slightly larger, subtle gradient left border, score prominent, "why now" one-liner, primary persona name
 - [ ] 2. Add filter bar: `All` | `Outreach Ready` | `Research` | `Deprioritized` | `High Confidence` | `Weak Evidence` — show count per filter
 - [ ] 3. Redesign `AccountCard.tsx` to answer three questions per row: Why this account? (model + location + confidence dot) | Why now? (one-liner from top factor) | What next? (action badge + "Next: Start with [persona]")
-- [ ] 4. Add mini 5-bar score breakdown inside each card (tiny 3px horizontal bars, colored by sub-score)
+- [ ] 4. Mini 5-bar score breakdown appears on Top Opportunity card and selected account card only; normal cards remain compact with score badge + confidence dot
 - [ ] 5. Improve selected state: `shadow-glow` border, slightly elevated, brand-colored left accent (3px solid)
 - [ ] 6. Redesign `ScoreBreakdown.tsx`: gradient-filled bars, animated fill on mount (CSS transition), dimension labels with subtle icons, score ring/arc for total score
 - [ ] 7. Redesign `EvidenceCardList.tsx`: left-border color by confidence (green/amber/gray), evidence type pill with icon (eye=observed, lightbulb=inferred), improved source layout
@@ -536,6 +499,7 @@ type OutreachSequenceStepStatus =
 - [ ] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep
 - [ ] 8. **Data model rule:** OutreachStrategy is primary for UI. OutreachPack remains for backward compat + JSON export. Do NOT generate outreach twice.
 - [ ] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`.
+- [ ] 10. Add `generateStrategy` method to provider abstraction (`src/lib/providers/index.ts`)
 
 **Files to create:** `src/lib/outreach-strategy.ts`, `src/pages/api/generate-strategy.ts`
 **Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`, `src/lib/workflow-runner.ts`
@@ -567,15 +531,14 @@ type OutreachSequenceStepStatus =
 - [ ] 6. Validate Demo_Mode runs end-to-end with no API keys after all Phase 4 changes
 - [ ] 7. Validate old OutreachPack fallback still renders when outreachStrategy is undefined
 - [ ] 8. Verify full demo flow: preset ICP → workflow → MarketFlow auto-select → all tabs work → Agent Plan shows strategy → reject TinyBooks → feedback logged
-- [ ] 9. **MongoDB checks:**
+- [ ] 9. **MongoDB checks (Task 19.5 only):**
   - Validate app runs with MongoDB disabled (`MONGODB_ENABLE_PERSISTENCE=false`)
   - Validate app runs with invalid `MONGODB_URI`
   - Validate app runs when MongoDB API routes timeout (3s)
   - Validate no MongoDB URI or database credentials appear in client bundle
   - Validate persisted campaign can be loaded and produces the same visible state
   - Validate saved strategies preserve evidence chip traceability
-  - Validate vector search is skipped gracefully if no vector index is configured
-  - Validate seeded semantic memory returns at least one useful recommendation (when enabled)
+  - Validate MongoDB write failures do not change user-visible workflow results
 
 **Files to modify:** `src/lib/schemas.ts`, `src/lib/traceability.ts`
 
@@ -587,7 +550,27 @@ type OutreachSequenceStepStatus =
 
 ## Phase 4B — Stretch Polish (Only After 4A Is Stable)
 
-### Task 26: Agent Decision Stream
+### Task 26: MongoDB Campaign Memory (Stretch)
+
+**Objective:** Allow users to resume previous campaigns and reuse previous learning. Only build after 4A is stable.
+
+- [ ] 1. Create `src/lib/campaign-memory.ts`: `saveCampaignSnapshot()`, `loadCampaignSnapshot(campaignId)`, `listRecentCampaigns(limit = 10)`
+- [ ] 2. When a campaign is loaded, restore: ICP, Search Plan, accounts, scores, evidence cards, personas, strategies, outcomes, feedback
+- [ ] 3. Add "Recent Campaigns" lightweight UI in left panel (last 3-5 campaigns with ICP summary + account count)
+- [ ] 4. Add "Resume previous campaign" button and "Save campaign" explicit action
+- [ ] 5. Loaded campaign must be marked as loaded from MongoDB (not regenerated) so presenter can explain persistence
+- [ ] 6. Add activity log entries: "I saved this campaign to MongoDB Atlas..." / "I loaded a previous campaign..."
+- [ ] 7. Create `src/pages/api/list-campaigns.ts`
+
+**Acceptance criteria:**
+- User can save and resume a campaign
+- Loading restores visible UI state
+- Campaign memory is clearly optional
+- Demo Mode still works if campaign memory fails
+
+---
+
+### Task 27: Agent Decision Stream
 - [ ] 1. Create `AgentDecisionStream.tsx` to replace `BottomPanel.tsx`
 - [ ] 2. First-person commercial language: "I found 5 accounts, but only 3 have enough evidence for outreach."
 - [ ] 3. Create helper `createDecisionEntry({ stage, type, message, importance, accountId })` for consistent entries
@@ -602,7 +585,7 @@ type OutreachSequenceStepStatus =
 
 ---
 
-### Task 27: Presentation Mode (Minimal)
+### Task 28: Presentation Mode (Minimal)
 - [ ] 1. Add `presentationMode: boolean` to WorkflowState, toggle button (top-right, shortcut `P`)
 - [ ] 2. When active: collapse left panel, expand right to ~60%, hide mode toggle + compliance, enlarge font 1 step
 - [ ] 3. Keyboard shortcuts (disabled when input/textarea focused): `1` Score, `2` Evidence, `3` Brief, `4` Agent Plan, `→` next account, `←` prev account, `Escape` exits
@@ -613,7 +596,7 @@ type OutreachSequenceStepStatus =
 
 ---
 
-### Task 28: Agent Simulation
+### Task 29: Agent Simulation
 - [ ] 1. "Run Agent Simulation" button in Agent Plan tab (clearly labelled as simulation, NOT "Autopilot")
 - [ ] 2. Animate through strategy steps (1.5s delay): persona selection → channel choice → message generation → follow-up scheduling → fallback plan
 - [ ] 3. Each step appends to Decision Stream with `importance: "key"`
