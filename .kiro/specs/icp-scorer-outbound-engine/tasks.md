@@ -309,25 +309,25 @@ MongoDB campaign memory and Atlas Vector Search are stretch items and must not b
 
 **Objective:** Add production-grade persistence without breaking the current no-key Demo Mode. MongoDB persists campaigns, accounts, evidence, outreach strategies, and outcomes. The app continues working with localStorage when MongoDB is unavailable, slow, disabled, or misconfigured.
 
-- [ ] 1. Install MongoDB driver: `npm install mongodb`
-- [ ] 2. Add environment variables to `src/lib/env.ts`: `MONGODB_URI`, `MONGODB_DB_NAME` (default: `paysignal`), `MONGODB_ENABLE_PERSISTENCE` (default: `false`), `MONGODB_MODEL_API_KEY` (optional, for semantic memory)
-- [ ] 3. Create `src/lib/mongodb.ts` — server-only connection singleton:
+- [x] 1. Install MongoDB driver: `npm install mongodb`
+- [x] 2. Add environment variables to `src/lib/env.ts`: `MONGODB_URI`, `MONGODB_DB_NAME` (default: `paysignal`), `MONGODB_ENABLE_PERSISTENCE` (default: `false`), `MONGODB_MODEL_API_KEY` (optional, for semantic memory)
+- [x] 3. Create `src/lib/mongodb.ts` — server-only connection singleton:
   - Reuse connection across serverless invocations (module-level cached client)
   - Throw if imported client-side
   - Redact connection details from logs
   - Use lazy connection: only connect when persistence is enabled and first write/read occurs
-- [ ] 4. Define collections: `campaigns`, `accounts`, `evidence_cards`, `strategies`, `campaign_outcomes`, `icp_embeddings`
-- [ ] 5. Add typed collection accessors: `getCampaignsCollection()`, `getAccountsCollection()`, `getEvidenceCardsCollection()`, `getStrategiesCollection()`, `getCampaignOutcomesCollection()`, `getIcpEmbeddingsCollection()`
-- [ ] 6. Add indexes:
+- [x] 4. Define collections: `campaigns`, `accounts`, `evidence_cards`, `strategies`, `campaign_outcomes`, `icp_embeddings`
+- [x] 5. Add typed collection accessors: `getCampaignsCollection()`, `getAccountsCollection()`, `getEvidenceCardsCollection()`, `getStrategiesCollection()`, `getCampaignOutcomesCollection()`, `getIcpEmbeddingsCollection()`
+- [x] 6. Add indexes:
   - `campaigns`: `{ campaignId: 1 }`, `{ createdAt: -1 }`
   - `accounts`: `{ campaignId: 1, id: 1 }`
   - `evidence_cards`: `{ campaignId: 1, accountId: 1 }`
   - `strategies`: `{ campaignId: 1, accountId: 1 }`
   - `campaign_outcomes`: `{ campaignId: 1, accountId: 1, createdAt: -1 }`
   - `icp_embeddings`: vector index only if semantic memory is enabled later
-- [ ] 7. Add `campaignId: string` to WorkflowState, generate UUID at workflow start
-- [ ] 8. Attach `campaignId` to accounts, evidence cards, strategies, outcomes, and feedback when persisting
-- [ ] 9. Create `src/lib/providers/mongodb.ts` with:
+- [x] 7. Add `campaignId: string` to WorkflowState, generate UUID at workflow start
+- [x] 8. Attach `campaignId` to accounts, evidence cards, strategies, outcomes, and feedback when persisting
+- [x] 9. Create `src/lib/providers/mongodb.ts` with:
   - `saveCampaign(campaign)` — upsert campaign metadata
   - `saveAccounts(campaignId, accounts)` — bulk upsert accounts by ID
   - `saveEvidenceCards(campaignId, accountId, evidenceCards)` — persist evidence
@@ -335,23 +335,23 @@ MongoDB campaign memory and Atlas Vector Search are stretch items and must not b
   - `saveCampaignOutcome(campaignId, outcome)` — persist feedback
   - `loadCampaign(campaignId)` — retrieve full campaign state
   - `deleteCampaign(campaignId)` — remove campaign data
-- [ ] 10. Add non-blocking persistence to `workflow-runner.ts`:
+- [x] 10. Add non-blocking persistence to `workflow-runner.ts`:
   - Persist after scoring completes
   - Persist after strategy generation
   - Persist after campaign outcome changes
   - Never delay UI rendering — fire-and-forget with 3-second timeout
   - If write fails, log warning and continue
-- [ ] 11. Create API routes:
+- [x] 11. Create API routes:
   - `src/pages/api/persist-campaign.ts` — saves current workflow state
   - `src/pages/api/load-campaign.ts` — loads a saved campaign
   - `src/pages/api/delete-campaign.ts` — removes a campaign
-- [ ] 12. Add visible save status indicator in the UI (small pill near mode toggle):
+- [x] 12. Add visible save status indicator in the UI (small pill near mode toggle):
   - "Saved to Atlas" (green) — when persistence succeeds
   - "Local only" (gray) — when MongoDB is not configured
   - "Save failed — demo continues" (amber) — when write fails
-- [ ] 13. **Fallback rule:** If MongoDB is unavailable, slow, disabled, or misconfigured, the app continues with localStorage and Demo Mode. MongoDB must never block the demo.
-- [ ] 14. Update clear-data behaviour: clear local cache AND offer campaign deletion through API if MongoDB campaign is loaded
-- [ ] 15. **Additional rules:**
+- [x] 13. **Fallback rule:** If MongoDB is unavailable, slow, disabled, or misconfigured, the app continues with localStorage and Demo Mode. MongoDB must never block the demo.
+- [x] 14. Update clear-data behaviour: clear local cache AND offer campaign deletion through API if MongoDB campaign is loaded
+- [x] 15. **Additional rules:**
   - MongoDB provider must never be imported by client-side React components
   - MongoDB writes must be server-side only through API routes
   - If MongoDB persistence fails, the user-visible workflow result must not change
@@ -359,7 +359,7 @@ MongoDB campaign memory and Atlas Vector Search are stretch items and must not b
   - Do not persist raw provider responses, prompts, raw LLM outputs, or unnormalised external data
   - All MongoDB API routes must return `{ success: false, error: "..." }` on failure, never throw raw driver errors to the client
   - Persistence is non-blocking from the UI: client triggers persistence API call asynchronously and does not wait before rendering results. The API route itself completes or times out within 3 seconds.
-- [ ] 16. Add Campaign model:
+- [x] 16. Add Campaign model:
 ```typescript
 interface Campaign {
   campaignId: string;
@@ -393,18 +393,18 @@ interface Campaign {
 ---
 
 ### Task 20: Resizable Command Centre Layout
-- [ ] 1. Verify `react-resizable-panels` is installed (already in package.json)
-- [ ] 2. Replace fixed CSS grid in `ThreePanelLayout.tsx` with `PanelGroup` + `Panel` from react-resizable-panels
-- [ ] 3. Left panel: default 22%, min 15%, max 35%, collapsible via explicit button (NOT auto-collapse — only collapse in Presentation Mode or via user action)
-- [ ] 4. Center panel: default 33%, min 25%, flexible
-- [ ] 5. Right panel: default 45%, min 30% — expands to fill when left panel is collapsed
-- [ ] 6. Bottom activity log: vertical panel group, default 25%, min 10%, max 40%, collapsible via toggle
-- [ ] 7. Create styled `ResizeHandle` component — thin line (1.5px), brand color glow on hover/drag, subtle cursor change
-- [ ] 8. Persist panel sizes in localStorage via `onLayout` callback (key: `paysignal:panel-sizes:v1` — versioned to avoid stale layouts)
-- [ ] 9. Add "Reset Layout" button that clears stored sizes and restores defaults
-- [ ] 10. Verify: panel resizing does not break right-panel tabs, minimum sizes prevent unreadable content, layout works at 1280px and 1920px+
-- [ ] 11. Use nested panel structure: Outer vertical PanelGroup → Top workspace (horizontal PanelGroup: left/center/right) + Bottom log panel
-- [ ] 12. Stored layout values must be validated before applying; invalid values restore defaults
+- [x] 1. Verify `react-resizable-panels` is installed (already in package.json)
+- [x] 2. Replace fixed CSS grid in `ThreePanelLayout.tsx` with `PanelGroup` + `Panel` from react-resizable-panels
+- [x] 3. Left panel: default 22%, min 15%, max 35%, collapsible via explicit button (NOT auto-collapse — only collapse in Presentation Mode or via user action)
+- [x] 4. Center panel: default 33%, min 25%, flexible
+- [x] 5. Right panel: default 45%, min 30% — expands to fill when left panel is collapsed
+- [x] 6. Bottom activity log: vertical panel group, default 25%, min 10%, max 40%, collapsible via toggle
+- [x] 7. Create styled `ResizeHandle` component — thin line (1.5px), brand color glow on hover/drag, subtle cursor change
+- [x] 8. Persist panel sizes in localStorage via `onLayout` callback (key: `paysignal:panel-sizes:v1` — versioned to avoid stale layouts)
+- [x] 9. Add "Reset Layout" button that clears stored sizes and restores defaults
+- [x] 10. Verify: panel resizing does not break right-panel tabs, minimum sizes prevent unreadable content, layout works at 1280px and 1920px+
+- [x] 11. Use nested panel structure: Outer vertical PanelGroup → Top workspace (horizontal PanelGroup: left/center/right) + Bottom log panel
+- [x] 12. Stored layout values must be validated before applying; invalid values restore defaults
 
 **Acceptance criteria:**
 - Panels resize smoothly without jank
@@ -418,37 +418,37 @@ interface Campaign {
 ---
 
 ### Task 21: Premium Design Tokens & Shared Styling
-- [ ] 1. Update `tailwind.config.js` with richer dark palette: background deep navy `#0a0e1a`, panels layered dark blue `#111827` with subtle inner shadow, primary accent electric blue `#3b9eff` / cyan `#22d3ee`, opportunity emerald `#34d399`, warning amber `#f59e0b`, risk muted rose `#f43f5e`
-- [ ] 2. Add custom utilities: `bg-glow-brand` (radial gradient, used ONLY for selected account and top opportunity), `shadow-glow` (subtle blue glow for selected state), `shadow-inner-glow` (panel inner highlight)
-- [ ] 3. Add animations: `animate-fade-in` (0.3s ease), `animate-slide-up` (0.3s ease), `animate-pulse-slow` (3s) — use sparingly, only for running stage indicator and loading states
-- [ ] 4. Update `globals.css`: add `.panel-glass` class (subtle border `border-white/5`, inner shadow, no backdrop-blur on low-end), improve scrollbar styling (thin, dark), add focus ring styles
-- [ ] 5. Redesign buttons: primary gets subtle gradient + hover scale(1.02), secondary gets improved hover, disabled clearly muted
-- [ ] 6. Redesign badges: score badges slightly larger with better contrast, demo badge becomes intentional/premium pill ("Synthetic Demo" + info icon, not a warning)
-- [ ] 7. Redesign right-panel tab bar: underline animation on switch, min 36px touch targets, subtle background on active tab
-- [ ] 8. Add micro-interactions: fade-in for new content, smooth transitions on tab changes
-- [ ] 9. **Restraint rule:** Glow ONLY for selected account, top opportunity card, and primary CTA. Target: premium fintech AI, NOT gaming dashboard.
-- [ ] 10. **Accessibility:** All new colours must preserve readable contrast on projectors and laptop screens. Test with reduced contrast.
+- [x] 1. Update `tailwind.config.js` with richer dark palette: background deep navy `#0a0e1a`, panels layered dark blue `#111827` with subtle inner shadow, primary accent electric blue `#3b9eff` / cyan `#22d3ee`, opportunity emerald `#34d399`, warning amber `#f59e0b`, risk muted rose `#f43f5e`
+- [x] 2. Add custom utilities: `bg-glow-brand` (radial gradient, used ONLY for selected account and top opportunity), `shadow-glow` (subtle blue glow for selected state), `shadow-inner-glow` (panel inner highlight)
+- [x] 3. Add animations: `animate-fade-in` (0.3s ease), `animate-slide-up` (0.3s ease), `animate-pulse-slow` (3s) — use sparingly, only for running stage indicator and loading states
+- [x] 4. Update `globals.css`: add `.panel-glass` class (subtle border `border-white/5`, inner shadow, no backdrop-blur on low-end), improve scrollbar styling (thin, dark), add focus ring styles
+- [x] 5. Redesign buttons: primary gets subtle gradient + hover scale(1.02), secondary gets improved hover, disabled clearly muted
+- [x] 6. Redesign badges: score badges slightly larger with better contrast, demo badge becomes intentional/premium pill ("Synthetic Demo" + info icon, not a warning)
+- [x] 7. Redesign right-panel tab bar: underline animation on switch, min 36px touch targets, subtle background on active tab
+- [x] 8. Add micro-interactions: fade-in for new content, smooth transitions on tab changes
+- [x] 9. **Restraint rule:** Glow ONLY for selected account, top opportunity card, and primary CTA. Target: premium fintech AI, NOT gaming dashboard.
+- [x] 10. **Accessibility:** All new colours must preserve readable contrast on projectors and laptop screens. Test with reduced contrast.
 
 **Files to modify:** `tailwind.config.js`, `src/styles/globals.css`
 
 ---
 
 ### Task 22: Enhanced Account List & Score Visuals
-- [ ] 1. Add "Top Opportunity" hero card at top of account list — slightly larger, subtle gradient left border, score prominent, "why now" one-liner, primary persona name
-- [ ] 2. Add filter bar: `All` | `Outreach Ready` | `Research` | `Deprioritized` | `High Confidence` | `Weak Evidence` — show count per filter
-- [ ] 3. Redesign `AccountCard.tsx` to answer three questions per row: Why this account? (model + location + confidence dot) | Why now? (one-liner from top factor) | What next? (action badge + "Next: Start with [persona]")
-- [ ] 4. Mini 5-bar score breakdown appears on Top Opportunity card and selected account card only; normal cards remain compact with score badge + confidence dot
-- [ ] 5. Improve selected state: `shadow-glow` border, slightly elevated, brand-colored left accent (3px solid)
-- [ ] 6. Redesign `ScoreBreakdown.tsx`: gradient-filled bars, animated fill on mount (CSS transition), dimension labels with subtle icons, score ring/arc for total score
-- [ ] 7. Redesign `EvidenceCardList.tsx`: left-border color by confidence (green/amber/gray), evidence type pill with icon (eye=observed, lightbulb=inferred), improved source layout
-- [ ] 8. Redesign `WorkflowProgress.tsx`: connected node visualization (circles + lines, filled green=complete, pulsing blue=running, gray=pending)
+- [x] 1. Add "Top Opportunity" hero card at top of account list — slightly larger, subtle gradient left border, score prominent, "why now" one-liner, primary persona name
+- [x] 2. Add filter bar: `All` | `Outreach Ready` | `Research` | `Deprioritized` | `High Confidence` | `Weak Evidence` — show count per filter
+- [x] 3. Redesign `AccountCard.tsx` to answer three questions per row: Why this account? (model + location + confidence dot) | Why now? (one-liner from top factor) | What next? (action badge + "Next: Start with [persona]")
+- [x] 4. Mini 5-bar score breakdown appears on Top Opportunity card and selected account card only; normal cards remain compact with score badge + confidence dot
+- [x] 5. Improve selected state: `shadow-glow` border, slightly elevated, brand-colored left accent (3px solid)
+- [x] 6. Redesign `ScoreBreakdown.tsx`: gradient-filled bars, animated fill on mount (CSS transition), dimension labels with subtle icons, score ring/arc for total score
+- [x] 7. Redesign `EvidenceCardList.tsx`: left-border color by confidence (green/amber/gray), evidence type pill with icon (eye=observed, lightbulb=inferred), improved source layout
+- [x] 8. Redesign `WorkflowProgress.tsx`: connected node visualization (circles + lines, filled green=complete, pulsing blue=running, gray=pending)
 
 **Files to modify:** `src/components/center-panel/AccountList.tsx`, `src/components/center-panel/AccountCard.tsx`, `src/components/right-panel/ScoreBreakdown.tsx`, `src/components/right-panel/EvidenceCardList.tsx`, `src/components/center-panel/WorkflowProgress.tsx`
 
 ---
 
 ### Task 23: Agentic Outreach Strategy (Types + Generation)
-- [ ] 1. Add new types to `src/types/index.ts`: `OutreachStrategy`, `OutreachSequenceStep`, `OutreachSequenceStepStatus`
+- [x] 1. Add new types to `src/types/index.ts`: `OutreachStrategy`, `OutreachSequenceStep`, `OutreachSequenceStepStatus`
 ```typescript
 interface OutreachStrategy {
   id: string;
@@ -485,21 +485,21 @@ type OutreachSequenceStepStatus =
   | "draft" | "approved" | "copied" | "contacted"
   | "replied" | "no_response" | "skipped";
 ```
-- [ ] 2. Add `outreachStrategy?: OutreachStrategy` to `Account` interface (OutreachPack remains as fallback/export)
-- [ ] 3. Create `src/lib/outreach-strategy.ts` — generates OutreachStrategy per outreach-ready account:
+- [x] 2. Add `outreachStrategy?: OutreachStrategy` to `Account` interface (OutreachPack remains as fallback/export)
+- [x] 3. Create `src/lib/outreach-strategy.ts` — generates OutreachStrategy per outreach-ready account:
   - Select primary persona by evidence alignment (strongest card's dimension → matching persona)
   - Choose recommended channel: LinkedIn if no email, email if confirmed, call if C-level
   - Choose angle from strongest observed evidence card
   - Generate rationale, nextBestAction, successHypothesis, risks, fallbackPlan
   - Build 4-step sequence: Day 1 → Day 2 → Day 5 → Day 7
   - Assign confidence from evidence quality
-- [ ] 4. Each sequence step generates message via outreach-templates, with `claimEvidenceIds` per step
-- [ ] 5. Update `src/lib/demo-data.ts` — add precomputed OutreachStrategy to 3 qualifying accounts (derive from existing OutreachPack)
-- [ ] 6. Create `src/pages/api/generate-strategy.ts`
-- [ ] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep
-- [ ] 8. **Data model rule:** OutreachStrategy is primary for UI. OutreachPack remains for backward compat + JSON export. Do NOT generate outreach twice.
-- [ ] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`.
-- [ ] 10. Add `generateStrategy` method to provider abstraction (`src/lib/providers/index.ts`)
+- [x] 4. Each sequence step generates message via outreach-templates, with `claimEvidenceIds` per step
+- [x] 5. Update `src/lib/demo-data.ts` — add precomputed OutreachStrategy to 3 qualifying accounts (derive from existing OutreachPack)
+- [x] 6. Create `src/pages/api/generate-strategy.ts`
+- [x] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep
+- [x] 8. **Data model rule:** OutreachStrategy is primary for UI. OutreachPack remains for backward compat + JSON export. Do NOT generate outreach twice.
+- [x] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`.
+- [x] 10. Add `generateStrategy` method to provider abstraction (`src/lib/providers/index.ts`)
 
 **Files to create:** `src/lib/outreach-strategy.ts`, `src/pages/api/generate-strategy.ts`
 **Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`, `src/lib/workflow-runner.ts`
@@ -507,15 +507,15 @@ type OutreachSequenceStepStatus =
 ---
 
 ### Task 24: Agent Outreach Plan UI
-- [ ] 1. Create `AgentOutreachView.tsx` — used when `account.outreachStrategy` exists, falls back to `OutreachPackView.tsx` otherwise (do NOT delete old view)
-- [ ] 2. Create `AgentRecommendation.tsx` — prominent card: persona title, channel icon, angle, confidence badge, rationale text
-- [ ] 3. Create `NextBestAction.tsx` — always-visible card: single sentence next step, updates based on sequence status
-- [ ] 4. Create `OutreachTimeline.tsx` — vertical timeline (4 steps): day offset, channel icon, objective, status badge. Click expands message + evidence chips. Steps individually approvable/copyable/skippable.
-- [ ] 5. Evidence chips in messages: small pills showing signal type + short label, clickable to navigate to Evidence tab
-- [ ] 6. "Risks & Fallback" collapsible section below timeline
-- [ ] 7. Action buttons: "Approve Sequence", "Regenerate Strategy", "Change Persona" (dropdown), "Change Angle" (dropdown)
-- [ ] 8. Update `AccountDetail.tsx`: rename "Outreach" tab to "Agent Plan", render AgentOutreachView when strategy exists
-- [ ] 9. Sub-tabs inside Agent Plan: `Plan` (recommendation + timeline) | `Messages` (all expanded) | `Learning` (outcomes for this account)
+- [x] 1. Create `AgentOutreachView.tsx` — used when `account.outreachStrategy` exists, falls back to `OutreachPackView.tsx` otherwise (do NOT delete old view)
+- [x] 2. Create `AgentRecommendation.tsx` — prominent card: persona title, channel icon, angle, confidence badge, rationale text
+- [x] 3. Create `NextBestAction.tsx` — always-visible card: single sentence next step, updates based on sequence status
+- [x] 4. Create `OutreachTimeline.tsx` — vertical timeline (4 steps): day offset, channel icon, objective, status badge. Click expands message + evidence chips. Steps individually approvable/copyable/skippable.
+- [x] 5. Evidence chips in messages: small pills showing signal type + short label, clickable to navigate to Evidence tab
+- [x] 6. "Risks & Fallback" collapsible section below timeline
+- [x] 7. Action buttons: "Approve Sequence", "Regenerate Strategy", "Change Persona" (dropdown), "Change Angle" (dropdown)
+- [x] 8. Update `AccountDetail.tsx`: rename "Outreach" tab to "Agent Plan", render AgentOutreachView when strategy exists
+- [x] 9. Sub-tabs inside Agent Plan: `Plan` (recommendation + timeline) | `Messages` (all expanded) | `Learning` (outcomes for this account)
 
 **Files to create:** `src/components/right-panel/AgentOutreachView.tsx`, `src/components/right-panel/AgentRecommendation.tsx`, `src/components/right-panel/OutreachTimeline.tsx`, `src/components/right-panel/NextBestAction.tsx`
 **Files to modify:** `src/components/right-panel/AccountDetail.tsx`
