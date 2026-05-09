@@ -12,8 +12,8 @@
 
 import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
 
-const ACTOR_ID = "scraper-engine/linkedin-lead-scraper";
-const TIMEOUT_MS = 30_000;
+const ACTOR_ID = "apify~google-search-scraper";
+const TIMEOUT_MS = 60_000; // Google scraper needs more time
 
 export interface ApifyDiscoverResult {
   accounts: Account[];
@@ -35,12 +35,19 @@ export function createApifyProvider(): ApifyProvider {
     },
 
     async discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult> {
+      // Use Google Search to find LinkedIn profiles matching the ICP
+      const queryParts = [
+        "site:linkedin.com/in",
+        ...searchPlan.keywords.slice(0, 3),
+        ...(searchPlan.geographicFilters[0] ? [searchPlan.geographicFilters[0]] : []),
+      ];
+      const query = queryParts.join(" ");
+
       const actorInput = {
-        keywords: searchPlan.keywords,
-        platform: "Linkedin",
-        location: searchPlan.geographicFilters[0] || "",
-        maxEmails: 30,
-        engine: "legacy",
+        queries: query,
+        maxPagesPerQuery: 1,
+        resultsPerPage: 15,
+        mobileResults: false,
       };
 
       const controller = new AbortController();
@@ -67,7 +74,14 @@ export function createApifyProvider(): ApifyProvider {
         }
 
         const data = await response.json();
-        const accounts = normalizeApifyResults(data);
+
+        // Google Search returns array with organicResults
+        let results: any[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+          results = data[0]?.organicResults || data;
+        }
+
+        const accounts = normalizeGoogleSearchResults(results);
         return { accounts: deduplicateAccounts(accounts) };
       } catch (error) {
         clearTimeout(timeout);
@@ -76,12 +90,108 @@ export function createApifyProvider(): ApifyProvider {
         return {
           accounts: [],
           error: isTimeout
-            ? "Apify API timed out after 30s"
+            ? "Apify API timed out after 60s"
             : `Apify API failed: ${message}`,
         };
       }
     },
   };
+}
+
+// --- Google Search Results Normalization ---
+
+/**
+ * Normalize Google Search results (LinkedIn profile URLs) into Account records.
+ * Extracts name and title from search result titles.
+ */
+function normalizeGoogleSearchResults(results: any[]): Account[] {
+  if (!Array.isArray(results)) return [];
+
+  const accounts: Account[] = [];
+
+  for (const result of results) {
+    const url = result.url || result.link || "";
+    const title = result.title || "";
+    const description = result.description || result.snippet || "";
+
+    // Only process LinkedIn profile URLs
+    if (!url.includes("linkedin.com/in")) continue;
+
+    // Parse name and title from Google result title
+    // Format is usually: "Name - Title - Company | LinkedIn" or "Name - Title"
+    const parts = title.split(" - ").map((s: string) => s.trim());
+    const name = parts[0]?.replace(/\s*\|.*$/, "").trim() || "Unknown";
+    const jobTitle = parts[1]?.replace(/\s*\|.*$/, "").trim() || "";
+    const company = parts[2]?.replace(/\s*\|.*$/, "").replace("LinkedIn", "").trim() || "";
+
+    // Try to extract company from description if not in title
+    const companyName = company || extractCompanyFromDescription(description);
+
+    if (!companyName) {
+      // Create account from the person directly
+      accounts.push({
+        id: `account-${generateId()}`,
+        name: name,
+        location: "",
+        businessModel: classifyFromText(title + " " + description),
+        personas: [{
+          id: `persona-${generateId()}`,
+          name,
+          title: jobTitle,
+          relevanceExplanation: "",
+          linkedinUrl: url,
+          relevanceRank: 1,
+        }],
+        evidenceCards: [],
+        status: "discovered",
+        confidencePenalty: false,
+      });
+    } else {
+      accounts.push({
+        id: `account-${generateId()}`,
+        name: companyName,
+        location: "",
+        businessModel: classifyFromText(title + " " + description),
+        personas: [{
+          id: `persona-${generateId()}`,
+          name,
+          title: jobTitle,
+          relevanceExplanation: "",
+          linkedinUrl: url,
+          relevanceRank: 1,
+        }],
+        evidenceCards: [],
+        status: "discovered",
+        confidencePenalty: false,
+      });
+    }
+  }
+
+  return accounts;
+}
+
+function extractCompanyFromDescription(desc: string): string {
+  // Try to find company patterns in description
+  const patterns = [
+    /(?:at|@)\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[·|,.]|\s*$)/,
+    /(?:working at|employed at|joined)\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[·|,.]|\s*$)/,
+  ];
+  for (const pattern of patterns) {
+    const match = desc.match(pattern);
+    if (match) return match[1].trim();
+  }
+  return "";
+}
+
+function classifyFromText(text: string): BusinessModel {
+  const lower = text.toLowerCase();
+  if (lower.includes("marketplace")) return "marketplace";
+  if (lower.includes("platform")) return "platform";
+  if (lower.includes("gig") || lower.includes("freelance")) return "gig_economy";
+  if (lower.includes("saas") || lower.includes("software")) return "saas";
+  if (lower.includes("logistics") || lower.includes("freight")) return "logistics";
+  if (lower.includes("creator")) return "creator_economy";
+  return "other";
 }
 
 // --- Person-to-Account Normalization (Requirement 2.3) ---

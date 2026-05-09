@@ -3,6 +3,7 @@ import { ThreePanelLayout } from "@/components/layout/ThreePanelLayout";
 import { AgentDecisionStream } from "@/components/layout/AgentDecisionStream";
 import { ICPInput } from "@/components/left-panel/ICPInput";
 import { CompactSearchSummary } from "@/components/left-panel/CompactSearchSummary";
+import { ModeToggle } from "@/components/left-panel/ModeToggle";
 import { AccountList } from "@/components/center-panel/AccountList";
 import { WorkflowProgress } from "@/components/center-panel/WorkflowProgress";
 import { AccountDetail } from "@/components/right-panel/AccountDetail";
@@ -51,8 +52,18 @@ export default function Home() {
   // Left panel: compact after workflow starts
   const leftContent = state.presentationMode ? null : (
     workflowStarted && !leftExpanded
-      ? <CompactSearchSummary onExpand={() => setLeftExpanded(true)} />
-      : <ICPInput />
+      ? (
+        <div className="flex flex-col h-full">
+          <div className="flex-1"><CompactSearchSummary onExpand={() => setLeftExpanded(true)} /></div>
+          <ModeToggle />
+        </div>
+      )
+      : (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto"><ICPInput /></div>
+          <ModeToggle />
+        </div>
+      )
   );
 
   return (
