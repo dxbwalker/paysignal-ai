@@ -30,8 +30,8 @@ export function ThreePanelLayout({ leftPanel, centerPanel, rightPanel, bottomPan
         </div>
       </div>
 
-      {/* Bottom Panel — Agent Decision Stream */}
-      <div className="h-[180px] min-h-[120px] overflow-y-auto border-t border-white/5 bg-surface-raised">
+      {/* Bottom Panel — Agent Decision Stream (compact by default) */}
+      <div className="h-[120px] min-h-[80px] overflow-y-auto border-t border-white/5 bg-surface-raised">
         {bottomPanel}
       </div>
     </div>

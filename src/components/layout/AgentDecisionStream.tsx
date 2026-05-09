@@ -1,10 +1,8 @@
+import { useState } from "react";
 import { useWorkflow } from "@/context/WorkflowContext";
-import type { WorkflowStageName } from "@/types";
 
 const STAGE_ICONS: Record<string, string> = {
-  idle: "⏸",
   analyzing_icp: "🔍",
-  awaiting_plan_approval: "📋",
   discovering: "🔍",
   collecting_evidence: "📊",
   enriching: "🌐",
@@ -19,52 +17,66 @@ const STAGE_ICONS: Record<string, string> = {
 
 export function AgentDecisionStream() {
   const { state } = useWorkflow();
+  const [expanded, setExpanded] = useState(false);
+
+  const isReady = state.currentStage === "ready" || state.accounts.length > 0;
+
+  // Key decisions: entries containing important keywords
+  const keyEntries = state.activityLog.filter(
+    (e) =>
+      e.message.includes("deprioritized") ||
+      e.message.includes("strongest") ||
+      e.message.includes("recommend") ||
+      e.message.includes("Rejected") ||
+      e.message.includes("outreach-ready") ||
+      e.message.includes("Scored") ||
+      e.message.includes("Found")
+  );
+
+  const visibleEntries = expanded ? state.activityLog : (isReady ? keyEntries.slice(-3) : state.activityLog.slice(-5));
+
+  if (state.activityLog.length === 0) {
+    return (
+      <div className="p-3 h-full flex items-center justify-center">
+        <p className="text-[11px] text-gray-600 italic">Agent decisions will appear here...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-3 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-          Agent Decision Stream
+    <div className={`p-3 h-full flex flex-col ${isReady && !expanded ? "max-h-[96px]" : ""}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
+        <span className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">
+          Agent Decisions
         </span>
-        <span className="text-[10px] text-gray-600">
-          {state.activityLog.length} decisions
-        </span>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-[9px] text-gray-600 hover:text-gray-400 transition-colors"
+        >
+          {expanded ? "Collapse ↑" : `Show all (${state.activityLog.length}) ↓`}
+        </button>
       </div>
 
-      {state.activityLog.length === 0 ? (
-        <p className="text-xs text-gray-600 italic">
-          Waiting for workflow to start...
-        </p>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-1.5">
-          {state.activityLog.map((entry, i) => {
-            const icon = STAGE_ICONS[entry.stage] || "●";
-            const isKey = entry.message.includes("deprioritized") ||
-                          entry.message.includes("strongest") ||
-                          entry.message.includes("recommend") ||
-                          entry.message.includes("Rejected");
+      {/* Entries */}
+      <div className="flex-1 overflow-y-auto space-y-0.5">
+        {visibleEntries.map((entry) => {
+          const icon = STAGE_ICONS[entry.stage] || "●";
+          const isKey = keyEntries.includes(entry);
 
-            return (
-              <div
-                key={entry.id}
-                className={`flex items-start gap-2 text-xs animate-in ${
-                  isKey ? "bg-brand-500/5 rounded-md px-2 py-1.5 border-l-2 border-brand-500/30" : "px-2 py-1"
-                }`}
-              >
-                <span className="text-[10px] mt-0.5 flex-shrink-0">{icon}</span>
-                <div className="flex-1 min-w-0">
-                  <span className={`${isKey ? "text-gray-200 font-medium" : "text-gray-400"}`}>
-                    {entry.message}
-                  </span>
-                </div>
-                <span className="text-[9px] text-gray-700 font-mono whitespace-nowrap flex-shrink-0">
-                  {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+          return (
+            <div
+              key={entry.id}
+              className={`flex items-start gap-1.5 text-[11px] py-0.5 ${
+                isKey ? "text-gray-300" : "text-gray-500"
+              }`}
+            >
+              <span className="text-[9px] mt-0.5 flex-shrink-0 opacity-60">{icon}</span>
+              <span className="leading-relaxed">{entry.message}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
