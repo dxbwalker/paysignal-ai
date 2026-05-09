@@ -12,38 +12,55 @@ export function PersonaList({ account }: { account: Account }) {
     );
   }
 
+  const sorted = [...account.personas].sort((a, b) => a.relevanceRank - b.relevanceRank);
+
   return (
     <div className="space-y-3">
-      {account.personas.map((persona) => (
+      {sorted.map((persona) => (
         <div key={persona.id} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
           <div className="flex items-start justify-between">
             <div>
               <h4 className="text-sm font-medium text-white">{persona.name}</h4>
               <p className="text-xs text-brand-400">{persona.title}</p>
             </div>
-            <span className="text-[10px] text-gray-600 font-mono">
+            <span className="text-[10px] text-gray-600 font-mono bg-gray-800 px-1.5 py-0.5 rounded">
               #{persona.relevanceRank}
             </span>
           </div>
 
-          <p className="text-xs text-gray-400 mt-2">{persona.relevanceExplanation}</p>
+          <p className="text-xs text-gray-400 mt-2 leading-relaxed">{persona.relevanceExplanation}</p>
 
           {/* Contact info */}
-          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-700/50">
-            {persona.email && (
-              <span className="text-[10px] text-green-400">✓ {persona.email}</span>
-            )}
-            {persona.linkedinUrl && (
-              <a
-                href={persona.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-blue-400 hover:underline"
-              >
-                LinkedIn →
-              </a>
-            )}
-          </div>
+          {(persona.email || persona.phone || persona.linkedinUrl) && (
+            <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-700/50 flex-wrap">
+              {persona.email && (
+                <a
+                  href={`mailto:${persona.email}`}
+                  className="text-[10px] text-green-400 hover:underline"
+                >
+                  ✉ {persona.email}
+                </a>
+              )}
+              {persona.phone && (
+                <a
+                  href={`tel:${persona.phone}`}
+                  className="text-[10px] text-green-400 hover:underline"
+                >
+                  ☎ {persona.phone}
+                </a>
+              )}
+              {persona.linkedinUrl && (
+                <a
+                  href={persona.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-blue-400 hover:underline"
+                >
+                  LinkedIn →
+                </a>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

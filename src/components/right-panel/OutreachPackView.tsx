@@ -32,6 +32,10 @@ export function OutreachPackView({ account }: { account: Account }) {
     navigator.clipboard.writeText(text);
   };
 
+  const exportJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(pack, null, 2));
+  };
+
   return (
     <div className="space-y-4">
       {/* Why this account */}
@@ -99,7 +103,19 @@ export function OutreachPackView({ account }: { account: Account }) {
 
         {activeChannel === "call" && (
           <div className="space-y-2">
-            <span className="text-[10px] text-gray-500">Talking points</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Talking points</span>
+              <button
+                onClick={() =>
+                  copyToClipboard(
+                    pack.callOpener.talkingPoints.map((tp, i) => `${i + 1}. ${tp}`).join("\n")
+                  )
+                }
+                className="text-[10px] text-brand-400 hover:text-brand-300"
+              >
+                Copy
+              </button>
+            </div>
             <ol className="space-y-2">
               {pack.callOpener.talkingPoints.map((tp, i) => (
                 <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
@@ -130,7 +146,19 @@ export function OutreachPackView({ account }: { account: Account }) {
 
         {activeChannel === "questions" && (
           <div className="space-y-2">
-            <span className="text-[10px] text-gray-500">Discovery questions</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Discovery questions</span>
+              <button
+                onClick={() =>
+                  copyToClipboard(
+                    pack.discoveryQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")
+                  )
+                }
+                className="text-[10px] text-brand-400 hover:text-brand-300"
+              >
+                Copy
+              </button>
+            </div>
             <ol className="space-y-2">
               {pack.discoveryQuestions.map((q, i) => (
                 <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
@@ -143,24 +171,42 @@ export function OutreachPackView({ account }: { account: Account }) {
         )}
       </div>
 
-      {/* Evidence traceability */}
-      <div className="text-[10px] text-gray-600 space-y-0.5">
-        <p className="font-medium text-gray-500">Evidence referenced:</p>
-        {pack.claimEvidenceIds.map((id) => {
-          const card = account.evidenceCards.find((e) => e.id === id);
-          return (
-            <p key={id} className="text-gray-500">
-              <span className="text-gray-600 font-mono">{id}</span>
-              {card && <span className="ml-1">— {card.signalType.replace(/_/g, " ")}: {card.rawEvidence.slice(0, 60)}...</span>}
-            </p>
-          );
-        })}
-      </div>
+      {/* Evidence traceability / source attribution */}
+      {pack.claimEvidenceIds.length > 0 && (
+        <div className="text-[10px] text-gray-600 space-y-1">
+          <p className="font-medium text-gray-500">Source attribution (Evidence Cards referenced):</p>
+          {pack.claimEvidenceIds.map((id) => {
+            const card = account.evidenceCards.find((e) => e.id === id);
+            return (
+              <div key={id} className="flex items-start gap-1.5 text-gray-500">
+                <span className="font-mono text-gray-600 shrink-0">{id}</span>
+                {card && (
+                  <span>
+                    — {card.signalType.replace(/_/g, " ")}:{" "}
+                    {card.sourceUrl ? (
+                      <a
+                        href={card.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        {card.rawEvidence.slice(0, 60)}…
+                      </a>
+                    ) : (
+                      <span>{card.rawEvidence.slice(0, 60)}…</span>
+                    )}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Export */}
       <div className="flex gap-2">
         <button
-          onClick={() => copyToClipboard(JSON.stringify(pack, null, 2))}
+          onClick={exportJson}
           className="btn-secondary text-[10px] px-2 py-1"
         >
           📋 Export JSON

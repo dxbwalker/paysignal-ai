@@ -10,7 +10,7 @@ export function EvidenceCardList({ account }: { account: Account }) {
       {account.evidenceCards.map((card) => (
         <div key={card.id} className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
           {/* Header */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="badge-blue text-[10px]">
               {card.signalType.replace(/_/g, " ")}
             </span>
@@ -21,11 +21,14 @@ export function EvidenceCardList({ account }: { account: Account }) {
             }`}>
               {card.evidenceType}
             </span>
-            <span className={`text-[10px] ${
-              card.confidenceLevel === "high" ? "text-green-400" :
-              card.confidenceLevel === "medium" ? "text-yellow-400" : "text-gray-500"
+            <span className={`text-[10px] px-1.5 py-0 rounded border ${
+              card.confidenceLevel === "high"
+                ? "bg-green-500/10 text-green-400 border-green-500/20"
+                : card.confidenceLevel === "medium"
+                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                : "bg-gray-500/10 text-gray-500 border-gray-500/20"
             }`}>
-              {card.confidenceLevel} confidence
+              {card.confidenceLevel}
             </span>
           </div>
 
@@ -34,7 +37,21 @@ export function EvidenceCardList({ account }: { account: Account }) {
 
           {/* Source */}
           <div className="flex items-center gap-2 text-[10px] text-gray-500">
-            <span>Source: {card.sourceLabel}</span>
+            <span>
+              Source:{" "}
+              {card.sourceUrl ? (
+                <a
+                  href={card.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  {card.sourceLabel}
+                </a>
+              ) : (
+                card.sourceLabel
+              )}
+            </span>
             <span>·</span>
             <span>Reliability: {card.sourceReliability}</span>
             {card.sourceOrigin === "demo" && (

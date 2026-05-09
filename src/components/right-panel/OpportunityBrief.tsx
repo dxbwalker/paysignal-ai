@@ -11,13 +11,66 @@ export function OpportunityBrief({ account }: { account: Account }) {
             Account scored below 60 — brief not generated.
           </p>
           <p className="text-xs text-gray-600 mt-1">
-            Status: {account.opportunityScore.recommendedAction.replace("_", " ")}
+            Status: {account.opportunityScore.recommendedAction.replace(/_/g, " ")}
           </p>
         </div>
       );
     }
     return <p className="text-gray-500 text-sm">No brief available.</p>;
   }
+
+  const copyAsText = () => {
+    const lines = [
+      `# ${account.name} — Opportunity Brief`,
+      "",
+      `## Company Summary`,
+      brief.companySummary,
+      "",
+      `## Payment Complexity Hypothesis`,
+      brief.paymentComplexityHypothesis,
+      "",
+      `## Supporting Evidence`,
+      ...brief.supportingEvidence.map(
+        (ev) => `- [${ev.evidenceType}] ${ev.claim} (${ev.source}, ${ev.confidenceLevel} confidence)`
+      ),
+      "",
+      `## Likely Pain Points`,
+      ...brief.likelyPainPoints.map((p) => `- ${p}`),
+      "",
+      `## Suggested Outreach Angle`,
+      brief.suggestedOutreachAngle,
+      "",
+      `## Discovery Questions`,
+      ...brief.discoveryQuestions.map((q, i) => `${i + 1}. ${q}`),
+    ];
+    if (brief.lowEvidenceWarning) {
+      lines.unshift(`⚠️ Warning: ${brief.lowEvidenceWarning}`, "");
+    }
+    navigator.clipboard.writeText(lines.join("\n"));
+  };
+
+  const copyJsonExport = () => {
+    navigator.clipboard.writeText(JSON.stringify(brief, null, 2));
+  };
+
+  const copyCrmNote = () => {
+    const note = [
+      `${account.name} — Opportunity Brief`,
+      "",
+      brief.companySummary,
+      "",
+      `Hypothesis: ${brief.paymentComplexityHypothesis}`,
+      "",
+      "Pain Points:",
+      ...brief.likelyPainPoints.map((p) => `• ${p}`),
+      "",
+      `Outreach Angle: ${brief.suggestedOutreachAngle}`,
+      "",
+      "Discovery Questions:",
+      ...brief.discoveryQuestions.map((q, i) => `${i + 1}. ${q}`),
+    ];
+    navigator.clipboard.writeText(note.join("\n"));
+  };
 
   return (
     <div className="space-y-4">
@@ -52,7 +105,7 @@ export function OpportunityBrief({ account }: { account: Account }) {
         <div className="space-y-2">
           {brief.supportingEvidence.map((ev, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
-              <span className={`mt-0.5 text-[10px] px-1 rounded ${
+              <span className={`mt-0.5 text-[10px] px-1 rounded shrink-0 ${
                 ev.evidenceType === "observed"
                   ? "bg-green-500/10 text-green-400"
                   : ev.evidenceType === "inferred"
@@ -86,6 +139,28 @@ export function OpportunityBrief({ account }: { account: Account }) {
         </ul>
       </div>
 
+      {/* Recommended Personas */}
+      {brief.recommendedPersonas.length > 0 && (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+            Recommended Personas
+          </h4>
+          <div className="flex flex-wrap gap-1">
+            {brief.recommendedPersonas.map((personaId) => {
+              const persona = account.personas.find((p) => p.id === personaId);
+              return (
+                <span
+                  key={personaId}
+                  className="text-[10px] px-2 py-0.5 rounded bg-brand-600/10 text-brand-300 border border-brand-500/20"
+                >
+                  {persona ? `${persona.name} (${persona.title})` : personaId}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Outreach Angle */}
       <div>
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
@@ -108,19 +183,22 @@ export function OpportunityBrief({ account }: { account: Account }) {
         </ol>
       </div>
 
-      {/* Export */}
-      <div className="pt-3 border-t border-gray-800 flex gap-2">
+      {/* Export buttons */}
+      <div className="pt-3 border-t border-gray-800 flex gap-2 flex-wrap">
         <button
-          onClick={() => navigator.clipboard.writeText(JSON.stringify(brief, null, 2))}
+          onClick={copyAsText}
           className="btn-secondary text-[10px] px-2 py-1"
         >
-          📋 Copy JSON
+          📋 Copy Brief
         </button>
         <button
-          onClick={() => {
-            const text = `# ${account.name} — Opportunity Brief\n\n${brief.companySummary}\n\n## Hypothesis\n${brief.paymentComplexityHypothesis}\n\n## Pain Points\n${brief.likelyPainPoints.map(p => `- ${p}`).join("\n")}`;
-            navigator.clipboard.writeText(text);
-          }}
+          onClick={copyJsonExport}
+          className="btn-secondary text-[10px] px-2 py-1"
+        >
+          { } Export JSON
+        </button>
+        <button
+          onClick={copyCrmNote}
           className="btn-secondary text-[10px] px-2 py-1"
         >
           📝 Copy CRM Note

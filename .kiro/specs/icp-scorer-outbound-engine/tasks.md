@@ -85,7 +85,7 @@
 ---
 
 ### Task 7: Center Panel — Account List & Workflow Progress
-- [-] 1. Create `src/components/center-panel/WorkflowProgress.tsx` — stage indicators with status (pending/running/completed/warning/failed), current stage highlighted
+- [x] 1. Create `src/components/center-panel/WorkflowProgress.tsx` — stage indicators with status (pending/running/completed/warning/failed), current stage highlighted
 - [~] 2. Create `src/components/center-panel/AccountList.tsx` — ranked list with score badges, status labels, recommended action
 - [~] 3. Create `src/components/center-panel/AccountCard.tsx` — name, business model, score badge, recommended action, deprioritize reason for <40
 - [~] 4. Implement click-to-select: clicking account populates right panel detail view
@@ -98,7 +98,7 @@
 ---
 
 ### Task 8: Right Panel — Account Detail
-- [~] 1. Create `src/components/right-panel/AccountDetail.tsx` — container switching between sub-views
+- [x] 1. Create `src/components/right-panel/AccountDetail.tsx` — container switching between sub-views
 - [~] 2. Create `src/components/right-panel/ScoreBreakdown.tsx` — visual 5-dimension breakdown (horizontal bars with labels, weights, sub-scores, contributing signals)
 - [~] 3. Create `src/components/right-panel/EvidenceCardList.tsx` — cards showing signal type, evidence, source, confidence, angle, observed/inferred badge
 - [~] 4. Create `src/components/right-panel/PersonaList.tsx` — ranked personas with relevance explanation, contact info
@@ -117,7 +117,7 @@
 ## Phase 2 — Intelligence Layer
 
 ### Task 9: Evidence Collection
-- [~] 1. Create `src/lib/evidence-collector.ts` — signal detection from LinkedIn metadata
+- [-] 1. Create `src/lib/evidence-collector.ts` — signal detection from LinkedIn metadata
 - [~] 2. Implement signal detection for: payment/billing/AP roles, company descriptions, business model indicators, multi-country presence, hiring patterns
 - [~] 3. Generate Evidence_Cards with all fields: signal type, evidence type (observed/inferred), raw evidence, source, reliability level, inference explanation, confidence, why it matters, suggested angle, dimension mapping
 - [~] 4. Assign source reliability: high (direct company/job data), medium (inferred from titles), low (indirect indicators)
