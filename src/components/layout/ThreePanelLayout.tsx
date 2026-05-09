@@ -9,29 +9,29 @@ interface Props {
 
 export function ThreePanelLayout({ leftPanel, centerPanel, rightPanel, bottomPanel }: Props) {
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "var(--surface)" }}>
-      {/* Main panels */}
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "#060b18" }}>
+      {/* Main */}
       <div className="flex-1 flex min-h-0">
-        {/* Left */}
+        {/* Left — narrow, quiet */}
         {leftPanel && (
-          <div className="w-[280px] min-w-[280px] h-full overflow-y-auto panel-surface">
+          <div className="w-[240px] h-full overflow-y-auto" style={{ background: "#0a1020", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
             {leftPanel}
           </div>
         )}
 
-        {/* Center */}
-        <div className={`${leftPanel ? "w-[360px]" : "w-[320px]"} min-w-[300px] h-full overflow-y-auto panel-surface`}>
+        {/* Center — accounts */}
+        <div className="w-[320px] h-full overflow-y-auto" style={{ background: "#0d1425", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
           {centerPanel}
         </div>
 
-        {/* Right */}
-        <div className="flex-1 h-full overflow-y-auto" style={{ background: "var(--surface-raised)" }}>
+        {/* Right — main content area */}
+        <div className="flex-1 h-full overflow-y-auto" style={{ background: "#0f1629" }}>
           {rightPanel}
         </div>
       </div>
 
-      {/* Bottom */}
-      <div className="h-[110px] overflow-y-auto" style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}>
+      {/* Bottom — minimal */}
+      <div className="h-[80px] overflow-y-auto" style={{ background: "#080e1a", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         {bottomPanel}
       </div>
     </div>
