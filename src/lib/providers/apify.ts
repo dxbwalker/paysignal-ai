@@ -12,7 +12,7 @@
 
 import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
 
-const ACTOR_ID = "harvestapi/linkedin-profile-search";
+const ACTOR_ID = "harvestapi~linkedin-profile-search";
 const TIMEOUT_MS = 90_000; // LinkedIn search can take longer
 
 export interface ApifyDiscoverResult {
