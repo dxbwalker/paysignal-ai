@@ -3,11 +3,12 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import { EvidenceCardList } from "./EvidenceCardList";
 import { PersonaList } from "./PersonaList";
 import { OpportunityBrief } from "./OpportunityBrief";
-import { OutreachPackView } from "./OutreachPackView";
+import { AgentOutreachView } from "./AgentOutreachView";
 import { CampaignActions } from "./CampaignActions";
-import { useState } from "react";
+import { generateStrategy } from "@/lib/outreach-strategy";
+import { useState, useMemo } from "react";
 
-type Tab = "score" | "evidence" | "personas" | "brief" | "outreach" | "actions";
+type Tab = "score" | "evidence" | "personas" | "brief" | "agent_plan" | "actions";
 
 export function AccountDetail() {
   const { state } = useWorkflow();
@@ -28,9 +29,11 @@ export function AccountDetail() {
     { id: "evidence", label: "Evidence", count: account.evidenceCards.length },
     { id: "personas", label: "Personas", count: account.personas.length },
     { id: "brief", label: "Brief" },
-    { id: "outreach", label: "Outreach" },
+    { id: "agent_plan", label: "Agent Plan" },
     { id: "actions", label: "Actions" },
   ];
+
+  const strategy = useMemo(() => generateStrategy(account), [account]);
 
   return (
     <div className="flex flex-col h-full">
@@ -87,7 +90,7 @@ export function AccountDetail() {
         {activeTab === "evidence" && <EvidenceCardList account={account} />}
         {activeTab === "personas" && <PersonaList account={account} />}
         {activeTab === "brief" && <OpportunityBrief account={account} />}
-        {activeTab === "outreach" && <OutreachPackView account={account} />}
+        {activeTab === "agent_plan" && <AgentOutreachView account={account} strategy={strategy || undefined} />}
         {activeTab === "actions" && <CampaignActions account={account} />}
       </div>
     </div>
