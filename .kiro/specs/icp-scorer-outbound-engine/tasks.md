@@ -303,6 +303,49 @@
 
 ---
 
+### Task 19.5: MongoDB Atlas Integration (Persistence + Vector Search)
+
+**Why:** Replaces fragile localStorage with production-grade persistence. Adds semantic ICP matching via Atlas Vector Search — makes the product feel AI-native rather than keyword-based.
+
+**Cluster:** M10 Dedicated, AWS London, MongoDB 8.0.23, Vector Search index already configured on `duecourse.corpus_chunks` collection.
+
+- [ ] 1. Install `mongodb` driver: `npm install mongodb`
+- [ ] 2. Create `src/lib/mongodb.ts` — connection singleton (reuses connection across serverless invocations):
+  - Connect using `MONGODB_URI` env var
+  - Database: `paysignal`
+  - Collections: `accounts`, `campaigns`, `strategies`, `icp_embeddings`
+  - Export typed collection accessors
+- [ ] 3. Create `src/lib/providers/mongodb.ts` — MongoDB provider adapter:
+  - `saveAccounts(accounts: Account[])` — upsert accounts by ID
+  - `getAccounts(campaignId: string)` — retrieve all accounts for a campaign
+  - `saveStrategy(strategy: OutreachStrategy)` — persist outreach strategy
+  - `saveCampaignOutcome(outcome: CampaignOutcome)` — persist feedback
+  - `getCampaignFeedback(campaignId: string)` — aggregate outcomes
+- [ ] 4. Create `src/lib/embeddings.ts` — generate embeddings via MongoDB AI Models API or OpenAI:
+  - `embedText(text: string)` → returns float[] vector
+  - Use MongoDB Model API key (`MONGODB_MODEL_API_KEY`) or fall back to OpenAI embeddings
+  - Cache embeddings to avoid redundant API calls
+- [ ] 5. Create vector search function `findSimilarAccounts(icpEmbedding: float[], limit: number)`:
+  - Uses Atlas Vector Search on `icp_embeddings` collection
+  - Returns semantically similar past ICP → account mappings
+  - Enables "accounts similar to ones that worked before" feature
+- [ ] 6. Create `src/pages/api/persist-accounts.ts` — saves workflow results to MongoDB after scoring completes
+- [ ] 7. Create `src/pages/api/load-campaign.ts` — loads a saved campaign from MongoDB (enables "resume previous campaign" feature)
+- [ ] 8. Update `src/lib/env.ts` — add `MONGODB_URI` and `MONGODB_MODEL_API_KEY` to env config, with graceful fallback to localStorage when MongoDB is unavailable
+- [ ] 9. Update workflow-runner: after scoring completes, persist accounts + strategies to MongoDB (non-blocking, don't delay the UI)
+- [ ] 10. **Fallback rule:** If MongoDB is unavailable, the app continues working with localStorage only. MongoDB is an enhancement, not a requirement.
+
+**Demo value:**
+- "Our data persists in MongoDB Atlas — this isn't a toy localStorage demo"
+- "We use vector search to find semantically similar accounts to past successful campaigns"
+- Shows production-readiness to judges
+
+**Files to create:** `src/lib/mongodb.ts`, `src/lib/providers/mongodb.ts`, `src/lib/embeddings.ts`, `src/pages/api/persist-accounts.ts`, `src/pages/api/load-campaign.ts`
+**Files to modify:** `src/lib/env.ts`, `src/lib/workflow-runner.ts`
+**New dependencies:** `mongodb`
+
+---
+
 ### Task 20: Resizable Command Centre Layout
 - [ ] 1. Verify `react-resizable-panels` is installed (already in package.json)
 - [ ] 2. Replace fixed CSS grid in `ThreePanelLayout.tsx` with `PanelGroup` + `Panel` from react-resizable-panels
