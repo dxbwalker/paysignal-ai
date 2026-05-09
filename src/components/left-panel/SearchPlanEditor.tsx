@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useWorkflow } from "@/context/WorkflowContext";
+import { runWorkflowFromDiscovery } from "@/lib/workflow-runner";
 import type { BusinessModel, SearchPlan } from "@/types";
 
 const BUSINESS_MODEL_LABELS: Record<BusinessModel, string> = {
@@ -95,12 +96,19 @@ export function SearchPlanEditor() {
     }
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     setIsEditing(false);
     dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "completed" });
     addLog("awaiting_plan_approval", "Search plan approved by user. Initiating account discovery.");
-    // Trigger discovery stage
-    dispatch({ type: "SET_STAGE", stage: "discovering", status: "running" });
+
+    // Run the remaining workflow stages (discover → evidence → enrich → score → personas → briefs → outreach)
+    await runWorkflowFromDiscovery({
+      icpDescription: state.icpDescription,
+      mode: state.mode,
+      dispatch,
+      addLog,
+      suppressionList: state.suppressionList,
+    });
   };
 
   return (

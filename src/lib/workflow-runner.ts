@@ -719,3 +719,156 @@ export async function runWorkflow(options: WorkflowRunnerOptions): Promise<void>
     addLog("failed", `Workflow failed: ${message.slice(0, 250)}`);
   }
 }
+
+/**
+ * Runs the workflow starting from the discovery stage (skips ICP analysis and plan approval).
+ * Called after the user manually approves the search plan in the UI.
+ */
+export async function runWorkflowFromDiscovery(options: WorkflowRunnerOptions): Promise<void> {
+  const { icpDescription, mode, dispatch, addLog, suppressionList, onTimeBudgetExceeded } = options;
+
+  const startMs = Date.now();
+  dispatch({ type: "START_TIMER" });
+
+  function checkBudget(): boolean {
+    if (isBudgetExceeded(startMs)) {
+      addLog("ready", "Time budget exceeded — falling back to cached/demo data for remaining stages.");
+      onTimeBudgetExceeded?.();
+      return true;
+    }
+    return false;
+  }
+
+  try {
+    // --- Stage 3: Discover Accounts ---
+    setStage(dispatch, "discovering", "running");
+
+    // Use the existing search plan from state (already approved)
+    const searchPlan = cache.get<SearchPlan>(CACHE_KEY_SEARCH_PLAN) ?? {
+      keywords: icpDescription.split(/\s+/).slice(0, 5),
+      companyTypes: ["marketplace", "platform", "saas"] as const,
+      geographicFilters: [] as string[],
+      personaTargets: ["Head of Payments", "CFO"],
+      exclusionCriteria: [] as string[],
+    } as SearchPlan;
+
+    const discoverResult = await discoverAccounts(searchPlan, mode, startMs);
+
+    if (discoverResult.fallback) {
+      setStage(dispatch, "discovering", "completed", discoverResult.fallbackReason);
+      addLog("discovering", `Discovery completed with fallback: ${discoverResult.fallbackReason}. Found ${discoverResult.data.length} accounts.`);
+    } else {
+      setStage(dispatch, "discovering", "completed");
+      addLog("discovering", `Discovered ${discoverResult.data.length} accounts. Classified by business model and deduplicated.`);
+    }
+
+    let accounts = discoverResult.data;
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+
+    checkBudget();
+
+    // --- Stage 4: Collect Evidence ---
+    setStage(dispatch, "collecting_evidence", "running");
+    const evidenceResult = await collectEvidence(accounts, mode, startMs);
+
+    if (evidenceResult.fallback) {
+      setStage(dispatch, "collecting_evidence", "completed", evidenceResult.fallbackReason);
+      addLog("collecting_evidence", `Evidence collection (fallback): ${evidenceResult.fallbackReason}`);
+    } else {
+      const totalCards = evidenceResult.data.reduce((sum, a) => sum + a.evidenceCards.length, 0);
+      setStage(dispatch, "collecting_evidence", "completed");
+      addLog("collecting_evidence", `Collected ${totalCards} evidence cards across ${evidenceResult.data.length} accounts.`);
+    }
+
+    accounts = evidenceResult.data;
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+    checkBudget();
+
+    // --- Stage 5: Enrich ---
+    setStage(dispatch, "enriching", "running");
+    const enrichResult = await enrichAccounts(accounts, mode, startMs);
+
+    if (enrichResult.fallback) {
+      setStage(dispatch, "enriching", "completed", enrichResult.fallbackReason);
+      addLog("enriching", `Enrichment (fallback): ${enrichResult.fallbackReason}`);
+    } else {
+      setStage(dispatch, "enriching", "completed");
+      addLog("enriching", "Web enrichment completed. Additional evidence cards added to top accounts.");
+    }
+
+    accounts = enrichResult.data;
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+    checkBudget();
+
+    // --- Stage 6: Score ---
+    setStage(dispatch, "scoring", "running");
+    const scoreResult = await scoreAccounts(accounts, icpDescription, mode, startMs);
+
+    if (scoreResult.fallback) {
+      setStage(dispatch, "scoring", "completed", scoreResult.fallbackReason);
+      addLog("scoring", `Scoring (fallback): ${scoreResult.fallbackReason}`);
+    } else {
+      const outreachCount = scoreResult.data.filter(
+        (a) => a.opportunityScore && a.opportunityScore.recommendedAction === "generate_outreach"
+      ).length;
+      setStage(dispatch, "scoring", "completed");
+      addLog("scoring", `Scored ${scoreResult.data.length} accounts. ${outreachCount} recommended for outreach (≥60).`);
+    }
+
+    accounts = scoreResult.data;
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+    checkBudget();
+
+    // --- Stage 7: Match Personas ---
+    setStage(dispatch, "matching_personas", "running");
+    const personaResult = await matchPersonas(accounts, mode, startMs);
+
+    if (personaResult.fallback) {
+      setStage(dispatch, "matching_personas", "completed", personaResult.fallbackReason);
+      addLog("matching_personas", `Persona matching (fallback): ${personaResult.fallbackReason}`);
+    } else {
+      const totalPersonas = personaResult.data.reduce((sum, a) => sum + a.personas.length, 0);
+      setStage(dispatch, "matching_personas", "completed");
+      addLog("matching_personas", `Matched ${totalPersonas} buyer personas across ${personaResult.data.length} accounts.`);
+    }
+
+    accounts = personaResult.data;
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+    checkBudget();
+
+    // --- Stage 8: Generate Briefs ---
+    setStage(dispatch, "generating_brief", "running");
+    const briefOutreachResult = await generateBriefsAndOutreach(accounts, mode, suppressionList, startMs);
+
+    if (briefOutreachResult.fallback) {
+      setStage(dispatch, "generating_brief", "completed", briefOutreachResult.fallbackReason);
+      addLog("generating_brief", `Brief generation (fallback): ${briefOutreachResult.fallbackReason}`);
+    } else {
+      const briefCount = briefOutreachResult.data.filter((a) => a.opportunityBrief).length;
+      setStage(dispatch, "generating_brief", "completed");
+      addLog("generating_brief", `Generated opportunity briefs for ${briefCount} qualifying accounts.`);
+    }
+
+    accounts = briefOutreachResult.data;
+
+    // --- Stage 9: Generate Outreach ---
+    setStage(dispatch, "generating_outreach", "running");
+    const outreachCount = accounts.filter((a) => a.outreachPack).length;
+    setStage(dispatch, "generating_outreach", "completed");
+    addLog("generating_outreach", `Generated outreach packs for ${outreachCount} accounts. Each references specific evidence cards.`);
+
+    dispatch({ type: "SET_ACCOUNTS", accounts });
+    cache.set(CACHE_KEY_ACCOUNTS, accounts);
+
+    // --- Stage 10: Ready ---
+    setStage(dispatch, "ready", "running");
+    setStage(dispatch, "ready", "completed");
+
+    const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+    addLog("ready", `Workflow complete in ${elapsed}s. ${accounts.length} accounts processed, ${outreachCount} outreach packs ready.`);
+  } catch (error) {
+    setStage(dispatch, "failed", "failed");
+    const message = error instanceof Error ? error.message : "Unknown error occurred";
+    addLog("failed", `Workflow failed: ${message.slice(0, 250)}`);
+  }
+}
