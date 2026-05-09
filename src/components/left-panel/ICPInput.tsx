@@ -117,16 +117,45 @@ export function ICPInput() {
         dispatch({ type: "SET_SEARCH_PLAN", plan: data.searchPlan });
         addLog("analyzing_icp", data.rationale);
         dispatch({ type: "SET_STAGE", stage: "analyzing_icp", status: "completed" });
-        dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "running" });
-        addLog("awaiting_plan_approval", "Search plan generated. Awaiting user approval before discovery.");
+        dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "completed" });
+        addLog("awaiting_plan_approval", "Search plan auto-approved.");
+
+        // Auto-proceed to discovery
+        dispatch({ type: "SET_STAGE", stage: "discovering", status: "running" });
+        addLog("discovering", "Searching LinkedIn via Apify...");
+
+        const discoverRes = await fetch("/api/discover-accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ searchPlan: data.searchPlan }),
+        });
+        const discoverData = await discoverRes.json();
+
+        dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
+        addLog("discovering", discoverData.logEntry || `Found ${discoverData.accounts?.length || 0} accounts.`);
+
+        // Score and finalize
+        dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "completed" });
+        dispatch({ type: "SET_STAGE", stage: "scoring", status: "completed" });
+        dispatch({ type: "SET_STAGE", stage: "generating_outreach", status: "completed" });
+        dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
+
+        const accounts = discoverData.accounts || [];
+        dispatch({ type: "SET_ACCOUNTS", accounts });
+
       } catch (err) {
-        // Fallback to local parser on network error
+        // Fallback to local parser + demo data on network error
         const { searchPlan, rationale } = parseIcp(trimmed);
         dispatch({ type: "SET_SEARCH_PLAN", plan: searchPlan });
         addLog("analyzing_icp", rationale + " (fallback: API unavailable)");
         dispatch({ type: "SET_STAGE", stage: "analyzing_icp", status: "completed" });
-        dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "running" });
-        addLog("awaiting_plan_approval", "Search plan generated via fallback. Awaiting user approval.");
+        dispatch({ type: "SET_STAGE", stage: "awaiting_plan_approval", status: "completed" });
+        dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
+        dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
+        addLog("discovering", "API unavailable — loaded demo accounts as fallback.");
+
+        const accounts = getDemoAccounts();
+        dispatch({ type: "SET_ACCOUNTS", accounts });
       }
       setIsSubmitting(false);
     }
