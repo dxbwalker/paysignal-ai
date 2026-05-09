@@ -16,6 +16,12 @@ export function AccountDetail() {
 
   const account = state.accounts.find((a) => a.id === state.selectedAccountId);
 
+  // useMemo must be called before any early returns (React hooks rules)
+  const strategy = useMemo(
+    () => (account ? generateStrategy(account) : null),
+    [account]
+  );
+
   if (!account) {
     return (
       <div className="p-4 flex items-center justify-center h-full">
@@ -32,8 +38,6 @@ export function AccountDetail() {
     { id: "agent_plan", label: "Agent Plan" },
     { id: "actions", label: "Actions" },
   ];
-
-  const strategy = useMemo(() => generateStrategy(account), [account]);
 
   return (
     <div className="flex flex-col h-full">
