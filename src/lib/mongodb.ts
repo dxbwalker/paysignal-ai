@@ -52,9 +52,9 @@ async function getClient(): Promise<MongoClient> {
   }
 
   const client = new MongoClient(MONGODB_URI, {
-    connectTimeoutMS: 3000,
-    serverSelectionTimeoutMS: 3000,
-    socketTimeoutMS: 3000,
+    connectTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 10000,
   });
 
   cachedClient = await client.connect();
@@ -117,7 +117,7 @@ export async function safeWrite<T>(
 
   try {
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("MongoDB write timeout (3s)")), 3000)
+      setTimeout(() => reject(new Error("MongoDB write timeout (10s)")), 10000)
     );
 
     const data = await Promise.race([operation(), timeoutPromise]);
