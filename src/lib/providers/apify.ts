@@ -12,8 +12,8 @@
 
 import type { Account, SearchPlan, BuyerPersona, BusinessModel } from "@/types";
 
-const ACTOR_ID = "apify~google-search-scraper";
-const TIMEOUT_MS = 60_000; // Google scraper needs more time
+const ACTOR_ID = "harvestapi/linkedin-profile-search";
+const TIMEOUT_MS = 90_000; // LinkedIn search can take longer
 
 export interface ApifyDiscoverResult {
   accounts: Account[];
@@ -35,20 +35,33 @@ export function createApifyProvider(): ApifyProvider {
     },
 
     async discoverWithStatus(searchPlan: SearchPlan, apiKey: string): Promise<ApifyDiscoverResult> {
-      // Use Google Search to find LinkedIn profiles matching the ICP
-      const queryParts = [
-        "site:linkedin.com/in",
-        ...searchPlan.keywords.slice(0, 3),
-        ...(searchPlan.geographicFilters[0] ? [searchPlan.geographicFilters[0]] : []),
-      ];
-      const query = queryParts.join(" ");
-
-      const actorInput = {
-        queries: query,
-        maxPagesPerQuery: 1,
-        resultsPerPage: 15,
-        mobileResults: false,
+      // Use harvestapi/linkedin-profile-search with job title + location filters
+      const actorInput: Record<string, any> = {
+        searchQuery: searchPlan.keywords.join(" "),
+        profileScraperMode: "Short",
+        takePages: 2,
+        maxItems: 25,
       };
+
+      // Add location filter if available
+      if (searchPlan.geographicFilters.length > 0) {
+        actorInput.locations = searchPlan.geographicFilters;
+      }
+
+      // Add job title filter from keywords that look like titles
+      const titleKeywords = searchPlan.keywords.filter((k) =>
+        /head|vp|director|manager|chief|cfo|coo|lead/i.test(k)
+      );
+      if (titleKeywords.length > 0) {
+        actorInput.currentJobTitles = titleKeywords;
+        // Use remaining keywords as general search
+        const remaining = searchPlan.keywords.filter((k) => !titleKeywords.includes(k));
+        if (remaining.length > 0) {
+          actorInput.searchQuery = remaining.join(" ");
+        } else {
+          actorInput.searchQuery = titleKeywords[0];
+        }
+      }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -75,13 +88,8 @@ export function createApifyProvider(): ApifyProvider {
 
         const data = await response.json();
 
-        // Google Search returns array with organicResults
-        let results: any[] = [];
-        if (Array.isArray(data) && data.length > 0) {
-          results = data[0]?.organicResults || data;
-        }
-
-        const accounts = normalizeGoogleSearchResults(results);
+        // harvestapi returns array of LinkedIn profiles directly
+        const accounts = normalizeLinkedInProfiles(data);
         return { accounts: deduplicateAccounts(accounts) };
       } catch (error) {
         clearTimeout(timeout);
@@ -90,12 +98,85 @@ export function createApifyProvider(): ApifyProvider {
         return {
           accounts: [],
           error: isTimeout
-            ? "Apify API timed out after 60s"
+            ? "Apify API timed out after 90s"
             : `Apify API failed: ${message}`,
         };
       }
     },
   };
+}
+
+// --- LinkedIn Profile Search Normalization (harvestapi format) ---
+
+/**
+ * Normalize harvestapi/linkedin-profile-search results into Account records.
+ * Each profile has: firstName, lastName, headline, linkedinUrl, currentPosition, location, etc.
+ */
+function normalizeLinkedInProfiles(data: any[]): Account[] {
+  if (!Array.isArray(data)) return [];
+
+  const companyMap = new Map<string, { account: Partial<Account>; people: any[] }>();
+
+  for (const profile of data) {
+    if (!profile || typeof profile !== "object") continue;
+
+    // Get company from currentPosition
+    const currentPos = profile.currentPosition?.[0];
+    const companyName = currentPos?.companyName || "";
+
+    if (!companyName) {
+      // No company — skip for account normalization
+      continue;
+    }
+
+    const key = companyName.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ");
+
+    if (!companyMap.has(key)) {
+      companyMap.set(key, {
+        account: {
+          name: companyName,
+          location: profile.location?.linkedinText || profile.location?.parsed?.text || "",
+          linkedinUrl: currentPos?.companyLinkedinUrl || undefined,
+          businessModel: classifyBusinessModel(companyName, {
+            title: profile.headline || "",
+            headline: profile.headline || "",
+            industry: "",
+          }),
+        },
+        people: [],
+      });
+    }
+
+    companyMap.get(key)!.people.push(profile);
+  }
+
+  const accounts: Account[] = [];
+
+  for (const [, { account, people }] of companyMap) {
+    const personas: BuyerPersona[] = people.map((p, i) => ({
+      id: `persona-${generateId()}`,
+      name: `${p.firstName || ""} ${p.lastName || ""}`.trim() || "Unknown",
+      title: p.headline || p.currentPosition?.[0]?.position || "",
+      relevanceExplanation: "",
+      email: undefined,
+      linkedinUrl: p.linkedinUrl || undefined,
+      relevanceRank: i + 1,
+    }));
+
+    accounts.push({
+      id: `account-${generateId()}`,
+      name: account.name!,
+      location: account.location || "",
+      linkedinUrl: account.linkedinUrl,
+      businessModel: account.businessModel || "other",
+      personas,
+      evidenceCards: [],
+      status: "discovered",
+      confidencePenalty: false,
+    });
+  }
+
+  return accounts;
 }
 
 // --- Google Search Results Normalization ---
