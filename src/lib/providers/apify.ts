@@ -120,8 +120,8 @@ function normalizeLinkedInProfiles(data: any[]): Account[] {
   for (const profile of data) {
     if (!profile || typeof profile !== "object") continue;
 
-    // Get company from currentPosition
-    const currentPos = profile.currentPosition?.[0];
+    // Get company from currentPositions (Short mode uses plural)
+    const currentPos = profile.currentPositions?.[0] || profile.currentPosition?.[0];
     const companyName = currentPos?.companyName || "";
 
     if (!companyName) {
@@ -135,11 +135,11 @@ function normalizeLinkedInProfiles(data: any[]): Account[] {
       companyMap.set(key, {
         account: {
           name: companyName,
-          location: profile.location?.linkedinText || profile.location?.parsed?.text || "",
+          location: profile.location?.linkedinText || profile.location?.parsed?.text || (typeof profile.location === "string" ? profile.location : ""),
           linkedinUrl: currentPos?.companyLinkedinUrl || undefined,
           businessModel: classifyBusinessModel(companyName, {
-            title: profile.headline || "",
-            headline: profile.headline || "",
+            title: currentPos?.title || profile.headline || "",
+            headline: profile.headline || profile.summary || "",
             industry: "",
           }),
         },
@@ -156,7 +156,7 @@ function normalizeLinkedInProfiles(data: any[]): Account[] {
     const personas: BuyerPersona[] = people.map((p, i) => ({
       id: `persona-${generateId()}`,
       name: `${p.firstName || ""} ${p.lastName || ""}`.trim() || "Unknown",
-      title: p.headline || p.currentPosition?.[0]?.position || "",
+      title: p.currentPositions?.[0]?.title || p.currentPosition?.[0]?.position || p.headline || "",
       relevanceExplanation: "",
       email: undefined,
       linkedinUrl: p.linkedinUrl || undefined,
