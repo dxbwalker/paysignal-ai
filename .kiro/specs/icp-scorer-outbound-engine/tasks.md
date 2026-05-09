@@ -335,7 +335,7 @@ MongoDB campaign memory and Atlas Vector Search are stretch items and must not b
   - `saveCampaignOutcome(campaignId, outcome)` — persist feedback
   - `loadCampaign(campaignId)` — retrieve full campaign state
   - `deleteCampaign(campaignId)` — remove campaign data
-- [x] 10. Add non-blocking persistence to `workflow-runner.ts`:
+- [ ] 10. Add non-blocking persistence to `workflow-runner.ts` — **NOT YET WIRED: API routes exist but workflow-runner does not call them automatically. Persistence must be triggered manually via API or wired into the runner.**
   - Persist after scoring completes
   - Persist after strategy generation
   - Persist after campaign outcome changes
@@ -345,7 +345,7 @@ MongoDB campaign memory and Atlas Vector Search are stretch items and must not b
   - `src/pages/api/persist-campaign.ts` — saves current workflow state
   - `src/pages/api/load-campaign.ts` — loads a saved campaign
   - `src/pages/api/delete-campaign.ts` — removes a campaign
-- [x] 12. Add visible save status indicator in the UI (small pill near mode toggle):
+- [ ] 12. Add visible save status indicator in the UI (small pill near mode toggle):
   - "Saved to Atlas" (green) — when persistence succeeds
   - "Local only" (gray) — when MongoDB is not configured
   - "Save failed — demo continues" (amber) — when write fails
@@ -394,17 +394,19 @@ interface Campaign {
 
 ### Task 20: Resizable Command Centre Layout
 - [x] 1. Verify `react-resizable-panels` is installed (already in package.json)
-- [x] 2. Replace fixed CSS grid in `ThreePanelLayout.tsx` with `PanelGroup` + `Panel` from react-resizable-panels
-- [x] 3. Left panel: default 22%, min 15%, max 35%, collapsible via explicit button (NOT auto-collapse — only collapse in Presentation Mode or via user action)
-- [x] 4. Center panel: default 33%, min 25%, flexible
-- [x] 5. Right panel: default 45%, min 30% — expands to fill when left panel is collapsed
-- [x] 6. Bottom activity log: vertical panel group, default 25%, min 10%, max 40%, collapsible via toggle
-- [x] 7. Create styled `ResizeHandle` component — thin line (1.5px), brand color glow on hover/drag, subtle cursor change
-- [x] 8. Persist panel sizes in localStorage via `onLayout` callback (key: `paysignal:panel-sizes:v1` — versioned to avoid stale layouts)
-- [x] 9. Add "Reset Layout" button that clears stored sizes and restores defaults
-- [x] 10. Verify: panel resizing does not break right-panel tabs, minimum sizes prevent unreadable content, layout works at 1280px and 1920px+
-- [x] 11. Use nested panel structure: Outer vertical PanelGroup → Top workspace (horizontal PanelGroup: left/center/right) + Bottom log panel
-- [x] 12. Stored layout values must be validated before applying; invalid values restore defaults
+- [x] 2. ~~Replace fixed CSS grid with resizable panels~~ — **Replaced with fixed CSS flexbox layout (280px/380px/flex-1) due to react-resizable-panels rendering issues. Panels are fixed-width but reliable.**
+- [x] 3. Left panel: fixed 280px width, hidden in Presentation Mode via user action (P key)
+- [x] 4. Center panel: fixed 380px width
+- [x] 5. Right panel: flex-1, expands to fill when left panel is hidden (Presentation Mode)
+- [x] 6. Bottom activity log: fixed 180px height
+- [ ] 7. ~~Create styled ResizeHandle component~~ — Not needed with fixed layout
+- [ ] 8. ~~Persist panel sizes in localStorage~~ — Not needed with fixed layout
+- [ ] 9. ~~Add "Reset Layout" button~~ — Not needed with fixed layout
+- [x] 10. Verify: layout works at 1280px and 1920px+, right-panel tabs functional at all widths
+- [ ] 11. ~~Nested panel structure~~ — Using simple CSS flexbox instead
+- [ ] 12. ~~Stored layout validation~~ — Not needed with fixed layout
+
+**Note:** Switched from react-resizable-panels to fixed CSS flexbox due to rendering bugs with the library. The fixed layout is reliable and demo-safe. Presentation Mode (P key) hides the left panel for a wider view.
 
 **Acceptance criteria:**
 - Panels resize smoothly without jank
@@ -448,7 +450,7 @@ interface Campaign {
 ---
 
 ### Task 23: Agentic Outreach Strategy (Types + Generation)
-- [x] 1. Add new types to `src/types/index.ts`: `OutreachStrategy`, `OutreachSequenceStep`, `OutreachSequenceStepStatus`
+- [ ] 1. Add new types to `src/types/index.ts`: `OutreachStrategy`, `OutreachSequenceStep`, `OutreachSequenceStepStatus` — **Types currently defined in `src/lib/outreach-strategy.ts` only, not exported from central types file**
 ```typescript
 interface OutreachStrategy {
   id: string;
@@ -485,7 +487,7 @@ type OutreachSequenceStepStatus =
   | "draft" | "approved" | "copied" | "contacted"
   | "replied" | "no_response" | "skipped";
 ```
-- [x] 2. Add `outreachStrategy?: OutreachStrategy` to `Account` interface (OutreachPack remains as fallback/export)
+- [ ] 2. Add `outreachStrategy?: OutreachStrategy` to `Account` interface (OutreachPack remains as fallback/export) — **NOT YET: type not in src/types/index.ts**
 - [x] 3. Create `src/lib/outreach-strategy.ts` — generates OutreachStrategy per outreach-ready account:
   - Select primary persona by evidence alignment (strongest card's dimension → matching persona)
   - Choose recommended channel: LinkedIn if no email, email if confirmed, call if C-level
@@ -494,12 +496,12 @@ type OutreachSequenceStepStatus =
   - Build 4-step sequence: Day 1 → Day 2 → Day 5 → Day 7
   - Assign confidence from evidence quality
 - [x] 4. Each sequence step generates message via outreach-templates, with `claimEvidenceIds` per step
-- [x] 5. Update `src/lib/demo-data.ts` — add precomputed OutreachStrategy to 3 qualifying accounts (derive from existing OutreachPack)
+- [ ] 5. Update `src/lib/demo-data.ts` — add precomputed OutreachStrategy to 3 qualifying accounts (derive from existing OutreachPack) — **NOT YET: demo-data has no outreachStrategy field**
 - [x] 6. Create `src/pages/api/generate-strategy.ts`
-- [x] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep
+- [ ] 7. Add Zod schemas for OutreachStrategy and OutreachSequenceStep — **NOT YET: schemas.ts has no OutreachStrategy schema**
 - [x] 8. **Data model rule:** OutreachStrategy is primary for UI. OutreachPack remains for backward compat + JSON export. Do NOT generate outreach twice.
-- [x] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`.
-- [x] 10. Add `generateStrategy` method to provider abstraction (`src/lib/providers/index.ts`)
+- [ ] 9. **MongoDB touchpoints:** Add `campaignId` to OutreachStrategy. Persist generated strategies to MongoDB when enabled. Load persisted strategies when resuming a campaign. `workflow-runner.ts` attaches OutreachStrategy to every account with `recommendedAction = generate_outreach`. — **NOT YET: workflow-runner does not call persist or attach strategies**
+- [ ] 10. Add `generateStrategy` method to provider abstraction (`src/lib/providers/index.ts`) — **NOT YET: provider factory does not expose generateStrategy**
 
 **Files to create:** `src/lib/outreach-strategy.ts`, `src/pages/api/generate-strategy.ts`
 **Files to modify:** `src/types/index.ts`, `src/lib/demo-data.ts`, `src/lib/schemas.ts`, `src/lib/workflow-runner.ts`
