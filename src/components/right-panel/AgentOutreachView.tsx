@@ -4,6 +4,8 @@ import { AgentRecommendation } from "./AgentRecommendation";
 import { NextBestAction } from "./NextBestAction";
 import { OutreachTimeline } from "./OutreachTimeline";
 import { OutreachPackView } from "./OutreachPackView";
+import { useWorkflow } from "@/context/WorkflowContext";
+import { useState, useCallback } from "react";
 
 interface Props {
   account: Account;
@@ -11,6 +13,37 @@ interface Props {
 }
 
 export function AgentOutreachView({ account, strategy }: Props) {
+  const { addLog } = useWorkflow();
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(-1);
+
+  const runSimulation = useCallback(() => {
+    if (!strategy || isSimulating) return;
+    setIsSimulating(true);
+    setSimulationStep(0);
+
+    const steps = [
+      `Selected ${strategy.recommendedPersonaTitle} as primary contact — their role aligns with the strongest evidence signals.`,
+      `Chose ${strategy.recommendedChannel} first because ${strategy.recommendedChannel === "email" ? "confirmed email is available" : strategy.recommendedChannel === "linkedin" ? "no confirmed email — LinkedIn is lowest barrier" : "C-level contact responds better to direct outreach"}.`,
+      `Generated evidence-backed opening message referencing ${strategy.sequence[0]?.claimEvidenceIds.length || 0} evidence card(s).`,
+      `Scheduled follow-up sequence: Day 2 email, Day 5 soft follow-up, Day 7 call if no response.`,
+      `Fallback plan ready: ${strategy.fallbackPlan}`,
+    ];
+
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < steps.length) {
+        addLog("generating_outreach", steps[i]);
+        setSimulationStep(i + 1);
+        i++;
+      } else {
+        clearInterval(interval);
+        addLog("ready", "Simulation complete — approve sequence to proceed with outreach.");
+        setIsSimulating(false);
+      }
+    }, 1500);
+  }, [strategy, isSimulating, addLog]);
+
   // Fall back to old OutreachPackView if no strategy
   if (!strategy) {
     return <OutreachPackView account={account} />;
@@ -52,9 +85,22 @@ export function AgentOutreachView({ account, strategy }: Props) {
       <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
         <button className="btn-primary text-xs">Approve Sequence</button>
         <button className="btn-secondary text-xs">Regenerate</button>
+        <button
+          onClick={() => runSimulation()}
+          className="btn-secondary text-xs"
+        >
+          ▶ Run Agent Simulation
+        </button>
         <button className="btn-ghost">Change Persona</button>
         <button className="btn-ghost">Change Angle</button>
       </div>
+
+      {/* Simulation disclaimer */}
+      {isSimulating && (
+        <p className="text-[10px] text-gray-600 italic pt-1">
+          This is a simulation. No messages are sent.
+        </p>
+      )}
     </div>
   );
 }

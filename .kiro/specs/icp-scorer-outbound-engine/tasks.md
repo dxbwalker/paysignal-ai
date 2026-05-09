@@ -523,15 +523,15 @@ type OutreachSequenceStepStatus =
 ---
 
 ### Task 25: Strategy Validation & Demo Safety
-- [ ] 1. Add Zod schemas for OutreachStrategy and OutreachSequenceStep (if not done in Task 23)
-- [ ] 2. Update seed-data validation: require `outreachStrategy` for accounts scoring ≥60
-- [ ] 3. Validate each sequence step has ≥1 `claimEvidenceId`
-- [ ] 4. Validate every `claimEvidenceId` maps to existing Evidence_Card on the account
-- [ ] 5. Validate no strategy message contains unsupported quantified claims (no % or "X times" without evidence backing)
-- [ ] 6. Validate Demo_Mode runs end-to-end with no API keys after all Phase 4 changes
-- [ ] 7. Validate old OutreachPack fallback still renders when outreachStrategy is undefined
-- [ ] 8. Verify full demo flow: preset ICP → workflow → MarketFlow auto-select → all tabs work → Agent Plan shows strategy → reject TinyBooks → feedback logged
-- [ ] 9. **MongoDB checks (Task 19.5 only):**
+- [x] 1. Add Zod schemas for OutreachStrategy and OutreachSequenceStep (if not done in Task 23)
+- [x] 2. Update seed-data validation: require `outreachStrategy` for accounts scoring ≥60
+- [x] 3. Validate each sequence step has ≥1 `claimEvidenceId`
+- [x] 4. Validate every `claimEvidenceId` maps to existing Evidence_Card on the account
+- [x] 5. Validate no strategy message contains unsupported quantified claims (no % or "X times" without evidence backing)
+- [x] 6. Validate Demo_Mode runs end-to-end with no API keys after all Phase 4 changes
+- [x] 7. Validate old OutreachPack fallback still renders when outreachStrategy is undefined
+- [x] 8. Verify full demo flow: preset ICP → workflow → MarketFlow auto-select → all tabs work → Agent Plan shows strategy → reject TinyBooks → feedback logged
+- [x] 9. **MongoDB checks (Task 19.5 only):**
   - Validate app runs with MongoDB disabled (`MONGODB_ENABLE_PERSISTENCE=false`)
   - Validate app runs with invalid `MONGODB_URI`
   - Validate app runs when MongoDB API routes timeout (3s)
@@ -571,14 +571,14 @@ type OutreachSequenceStepStatus =
 ---
 
 ### Task 27: Agent Decision Stream
-- [ ] 1. Create `AgentDecisionStream.tsx` to replace `BottomPanel.tsx`
-- [ ] 2. First-person commercial language: "I found 5 accounts, but only 3 have enough evidence for outreach."
-- [ ] 3. Create helper `createDecisionEntry({ stage, type, message, importance, accountId })` for consistent entries
-- [ ] 4. Add entry importance: `"normal" | "key" | "warning"` — Presentation Mode shows only key + warning
-- [ ] 5. Group entries by stage with subtle headers and completion indicators
-- [ ] 6. Add entry type icons: 🔍 discovery, 📊 scoring, 👤 persona, 📝 outreach, ⚠️ warning, ✓ completion
-- [ ] 7. Add collapse/expand toggle and "Clear log" button
-- [ ] 8. Update `demo-scenario.ts` narrative labels to first-person commercial language
+- [x] 1. Create `AgentDecisionStream.tsx` to replace `BottomPanel.tsx`
+- [x] 2. First-person commercial language: "I found 5 accounts, but only 3 have enough evidence for outreach."
+- [x] 3. Create helper `createDecisionEntry({ stage, type, message, importance, accountId })` for consistent entries
+- [x] 4. Add entry importance: `"normal" | "key" | "warning"` — Presentation Mode shows only key + warning
+- [x] 5. Group entries by stage with subtle headers and completion indicators
+- [x] 6. Add entry type icons: 🔍 discovery, 📊 scoring, 👤 persona, 📝 outreach, ⚠️ warning, ✓ completion
+- [x] 7. Add collapse/expand toggle and "Clear log" button
+- [x] 8. Update `demo-scenario.ts` narrative labels to first-person commercial language
 
 **Files to create:** `src/components/layout/AgentDecisionStream.tsx`
 **Files to modify:** `src/lib/demo-scenario.ts`, `src/pages/index.tsx`
@@ -586,23 +586,23 @@ type OutreachSequenceStepStatus =
 ---
 
 ### Task 28: Presentation Mode (Minimal)
-- [ ] 1. Add `presentationMode: boolean` to WorkflowState, toggle button (top-right, shortcut `P`)
-- [ ] 2. When active: collapse left panel, expand right to ~60%, hide mode toggle + compliance, enlarge font 1 step
-- [ ] 3. Keyboard shortcuts (disabled when input/textarea focused): `1` Score, `2` Evidence, `3` Brief, `4` Agent Plan, `→` next account, `←` prev account, `Escape` exits
-- [ ] 4. Activity log shows only `key` + `warning` entries in presentation mode
-- [ ] 5. Subtle "Presentation Mode" pill in top-right
+- [x] 1. Add `presentationMode: boolean` to WorkflowState, toggle button (top-right, shortcut `P`)
+- [x] 2. When active: collapse left panel, expand right to ~60%, hide mode toggle + compliance, enlarge font 1 step
+- [x] 3. Keyboard shortcuts (disabled when input/textarea focused): `1` Score, `2` Evidence, `3` Brief, `4` Agent Plan, `→` next account, `←` prev account, `Escape` exits
+- [x] 4. Activity log shows only `key` + `warning` entries in presentation mode
+- [x] 5. Subtle "Presentation Mode" pill in top-right
 
 **Files to modify:** `src/context/WorkflowContext.tsx`, `src/pages/index.tsx`, `src/components/layout/ThreePanelLayout.tsx`
 
 ---
 
 ### Task 29: Agent Simulation
-- [ ] 1. "Run Agent Simulation" button in Agent Plan tab (clearly labelled as simulation, NOT "Autopilot")
-- [ ] 2. Animate through strategy steps (1.5s delay): persona selection → channel choice → message generation → follow-up scheduling → fallback plan
-- [ ] 3. Each step appends to Decision Stream with `importance: "key"`
-- [ ] 4. After simulation: "Simulation complete — approve sequence to proceed"
-- [ ] 5. Controls: Pause, Skip, Reset, Fast-forward (presenter not trapped)
-- [ ] 6. Clear label: "This is a simulation. No messages are sent."
+- [x] 1. "Run Agent Simulation" button in Agent Plan tab (clearly labelled as simulation, NOT "Autopilot")
+- [x] 2. Animate through strategy steps (1.5s delay): persona selection → channel choice → message generation → follow-up scheduling → fallback plan
+- [x] 3. Each step appends to Decision Stream with `importance: "key"`
+- [x] 4. After simulation: "Simulation complete — approve sequence to proceed"
+- [x] 5. Controls: Pause, Skip, Reset, Fast-forward (presenter not trapped)
+- [x] 6. Clear label: "This is a simulation. No messages are sent."
 
 **Files to modify:** `src/components/right-panel/AgentOutreachView.tsx`, `src/components/layout/AgentDecisionStream.tsx`
 
