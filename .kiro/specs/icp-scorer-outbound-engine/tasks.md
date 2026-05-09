@@ -72,7 +72,7 @@
 ---
 
 ### Task 6: Left Panel — ICP Input & Search Plan
-- [-] 1. Create `src/components/left-panel/ICPInput.tsx` — textarea (20-2000 chars), validation, submit button
+- [x] 1. Create `src/components/left-panel/ICPInput.tsx` — textarea (20-2000 chars), validation, submit button
 - [~] 2. Add 2-3 preset ICP examples the presenter can click to populate input (e.g., "Marketplaces and SaaS platforms expanding internationally with complex payouts, refunds, reconciliation, and finance operations")
 - [~] 3. Create `src/components/left-panel/SearchPlanEditor.tsx` — editable keywords, company types, geo filters, exclusions with approve/edit actions
 - [~] 4. Create `src/components/left-panel/ModeToggle.tsx` — Live/Demo switch with visual indicator
@@ -85,7 +85,7 @@
 ---
 
 ### Task 7: Center Panel — Account List & Workflow Progress
-- [~] 1. Create `src/components/center-panel/WorkflowProgress.tsx` — stage indicators with status (pending/running/completed/warning/failed), current stage highlighted
+- [-] 1. Create `src/components/center-panel/WorkflowProgress.tsx` — stage indicators with status (pending/running/completed/warning/failed), current stage highlighted
 - [~] 2. Create `src/components/center-panel/AccountList.tsx` — ranked list with score badges, status labels, recommended action
 - [~] 3. Create `src/components/center-panel/AccountCard.tsx` — name, business model, score badge, recommended action, deprioritize reason for <40
 - [~] 4. Implement click-to-select: clicking account populates right panel detail view

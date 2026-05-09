@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useWorkflow } from "@/context/WorkflowContext";
 import type { BusinessModel, SearchPlan } from "@/types";
 
@@ -327,7 +327,7 @@ export function SearchPlanEditor() {
       )}
 
       {/* Approved indicator */}
-      {!isAwaitingApproval && state.currentStage !== "idle" && (
+      {!isAwaitingApproval && state.currentStage !== "idle" && state.currentStage !== "analyzing_icp" && (
         <div className="pt-2 border-t border-gray-800">
           <span className="text-[10px] text-green-400">✓ Search plan approved</span>
         </div>
