@@ -29,7 +29,7 @@ const marketflowEvidence: EvidenceCard[] = [
     rawEvidence:
       "MarketFlow processes split payments between 12,000+ sellers across 4 countries. Job posting mentions 'payout orchestration' and 'multi-party settlement'.",
     sourceLabel: "LinkedIn Job Posting",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -45,7 +45,7 @@ const marketflowEvidence: EvidenceCard[] = [
     rawEvidence:
       "Currently hiring 3 Payment Operations Analysts and 1 Senior Reconciliation Manager. Team has grown from 2 to 8 in 12 months.",
     sourceLabel: "LinkedIn Jobs",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -62,7 +62,7 @@ const marketflowEvidence: EvidenceCard[] = [
       "Careers page mentions 'daily reconciliation across Stripe, Adyen, and bank transfers' and 'exception handling for failed payouts'.",
     sourceLabel: "marketflow.io/careers",
     sourceUrl: "https://marketflow.io/careers",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -79,7 +79,7 @@ const marketflowEvidence: EvidenceCard[] = [
       "Raised $28M Series B in Q1 2024. Press release mentions 'scaling marketplace operations internationally'.",
     sourceLabel: "TechCrunch",
     sourceUrl: "https://techcrunch.com/marketflow-series-b",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     confidenceLevel: "high",
     whyItMatters:
@@ -95,7 +95,7 @@ const marketflowEvidence: EvidenceCard[] = [
     rawEvidence:
       "VP of Payment Operations (Sarah Chen) has been in role 8 months. Previously led payment automation at a fintech.",
     sourceLabel: "LinkedIn Profile",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -268,7 +268,7 @@ const gigconnectEvidence: EvidenceCard[] = [
       "GigConnect pays 45,000 gig workers weekly across UK, Germany, and France. Platform handles instant payouts and scheduled batch settlements.",
     sourceLabel: "Company About Page",
     sourceUrl: "https://gigconnect.co/about",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -284,7 +284,7 @@ const gigconnectEvidence: EvidenceCard[] = [
     rawEvidence:
       "Operations in UK, Germany, France with plans to expand to Spain and Italy per recent job postings mentioning 'new market launch'.",
     sourceLabel: "LinkedIn Jobs",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -300,7 +300,7 @@ const gigconnectEvidence: EvidenceCard[] = [
     rawEvidence:
       "Hiring 'Payment Operations Lead' and 'Compliance & Payments Analyst' — both roles mention cross-border payout management.",
     sourceLabel: "LinkedIn Jobs",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -316,7 +316,7 @@ const gigconnectEvidence: EvidenceCard[] = [
     rawEvidence:
       "Job description mentions 'migrating from legacy batch processing to real-time settlement infrastructure'.",
     sourceLabel: "LinkedIn Job Posting",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     inferenceExplanation:
       "Migration language suggests current systems are outdated, though specific legacy tools are not named.",
@@ -335,7 +335,7 @@ const gigconnectEvidence: EvidenceCard[] = [
       "GigConnect blog post details their 'payment infrastructure roadmap for 2024' including real-time FX conversion and automated compliance checks.",
     sourceLabel: "GigConnect Engineering Blog",
     sourceUrl: "https://gigconnect.co/blog/payments-roadmap-2024",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -508,7 +508,7 @@ const cloudscaleEvidence: EvidenceCard[] = [
       "CloudScale manages subscription billing for 2,400 enterprise customers with usage-based pricing tiers and annual/monthly mix.",
     sourceLabel: "Product Page",
     sourceUrl: "https://cloudscale.io/pricing",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -524,7 +524,7 @@ const cloudscaleEvidence: EvidenceCard[] = [
     rawEvidence:
       "Hiring 'Billing Operations Specialist' — role mentions 'invoice disputes', 'credit management', and 'dunning process optimization'.",
     sourceLabel: "LinkedIn Jobs",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     inferenceExplanation:
       "Hiring for billing ops with dunning focus suggests current processes are manual and causing revenue leakage.",
@@ -542,7 +542,7 @@ const cloudscaleEvidence: EvidenceCard[] = [
     rawEvidence:
       "Recently opened offices in London and Singapore. Job posts mention 'multi-currency invoicing' and 'tax compliance across jurisdictions'.",
     sourceLabel: "LinkedIn Company Page",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "medium",
     whyItMatters:
@@ -559,7 +559,7 @@ const cloudscaleEvidence: EvidenceCard[] = [
       "CloudScale's help docs reference integrations with Stripe Billing and NetSuite for revenue recognition, suggesting complex billing stack.",
     sourceLabel: "CloudScale Help Center",
     sourceUrl: "https://cloudscale.io/docs/integrations",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "medium",
     whyItMatters:
@@ -737,7 +737,7 @@ const freightpayEvidence: EvidenceCard[] = [
     rawEvidence:
       "FreightPay appears to handle carrier payments for logistics companies. Company description mentions 'freight payment solutions' and 'carrier settlement'.",
     sourceLabel: "LinkedIn Company Page",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     inferenceExplanation:
       "Company description suggests payment complexity but does not confirm volume, multi-party structure, or manual processes.",
@@ -755,7 +755,7 @@ const freightpayEvidence: EvidenceCard[] = [
     rawEvidence:
       "One employee mentions 'SAP integration' in their LinkedIn skills. Another mentions 'QuickBooks' in their experience.",
     sourceLabel: "LinkedIn Profiles",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "low",
     inferenceExplanation:
       "Individual employee skills do not confirm company-wide tool usage. SAP and QuickBooks may be from previous roles.",
@@ -773,7 +773,7 @@ const freightpayEvidence: EvidenceCard[] = [
     rawEvidence:
       "Has a 'Finance Manager' but no dedicated payment operations roles visible on LinkedIn.",
     sourceLabel: "LinkedIn Company Page",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     confidenceLevel: "medium",
     whyItMatters:
@@ -790,7 +790,7 @@ const freightpayEvidence: EvidenceCard[] = [
       "FreightPay website mentions 'connecting shippers with carriers' but a competitor review site describes them as a 'simple invoicing tool for small fleets'.",
     sourceLabel: "FreightPay Website / TruckTechReview",
     sourceUrl: "https://freightpay.com",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "low",
     inferenceExplanation:
       "Conflicting signals: company positions itself as a marketplace connector, but third-party review suggests simpler invoicing tool. Cannot confirm multi-party payment complexity.",
@@ -808,7 +808,7 @@ const freightpayEvidence: EvidenceCard[] = [
     rawEvidence:
       "One job posting mentions 'US and Canada operations' but company LinkedIn shows only 40 employees, all US-based.",
     sourceLabel: "LinkedIn Jobs",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "low",
     inferenceExplanation:
       "Job posting mentions Canada but no other evidence of international operations. May be aspirational rather than current.",
@@ -894,7 +894,7 @@ const tinybooksEvidence: EvidenceCard[] = [
     rawEvidence:
       "TinyBooks is a small accounting software company with 15 employees. Product focuses on invoicing for freelancers and micro-businesses.",
     sourceLabel: "LinkedIn Company Page",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     inferenceExplanation:
       "While they work in the payments/invoicing space, they are a tool provider, not a company with payment operations pain. Their customers have the pain, not TinyBooks itself.",
@@ -912,7 +912,7 @@ const tinybooksEvidence: EvidenceCard[] = [
       "TinyBooks processes subscription payments from their own customers via Stripe. Standard SaaS billing with no multi-party complexity.",
     sourceLabel: "TinyBooks Pricing Page",
     sourceUrl: "https://tinybooks.app/pricing",
-    sourceOrigin: "web",
+    sourceOrigin: "demo",
     sourceReliability: "high",
     confidenceLevel: "high",
     whyItMatters:
@@ -928,7 +928,7 @@ const tinybooksEvidence: EvidenceCard[] = [
     rawEvidence:
       "Founder/CEO handles finance directly. No dedicated finance or payment operations team.",
     sourceLabel: "LinkedIn Profile",
-    sourceOrigin: "linkedin",
+    sourceOrigin: "demo",
     sourceReliability: "medium",
     confidenceLevel: "medium",
     whyItMatters:

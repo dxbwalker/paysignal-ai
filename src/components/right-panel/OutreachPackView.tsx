@@ -144,8 +144,17 @@ export function OutreachPackView({ account }: { account: Account }) {
       </div>
 
       {/* Evidence traceability */}
-      <div className="text-[10px] text-gray-600">
-        References {pack.claimEvidenceIds.length} evidence card(s): {pack.claimEvidenceIds.join(", ")}
+      <div className="text-[10px] text-gray-600 space-y-0.5">
+        <p className="font-medium text-gray-500">Evidence referenced:</p>
+        {pack.claimEvidenceIds.map((id) => {
+          const card = account.evidenceCards.find((e) => e.id === id);
+          return (
+            <p key={id} className="text-gray-500">
+              <span className="text-gray-600 font-mono">{id}</span>
+              {card && <span className="ml-1">— {card.signalType.replace(/_/g, " ")}: {card.rawEvidence.slice(0, 60)}...</span>}
+            </p>
+          );
+        })}
       </div>
 
       {/* Export */}

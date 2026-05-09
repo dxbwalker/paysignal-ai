@@ -4,9 +4,10 @@ import { EvidenceCardList } from "./EvidenceCardList";
 import { PersonaList } from "./PersonaList";
 import { OpportunityBrief } from "./OpportunityBrief";
 import { OutreachPackView } from "./OutreachPackView";
+import { CampaignActions } from "./CampaignActions";
 import { useState } from "react";
 
-type Tab = "score" | "evidence" | "personas" | "brief" | "outreach";
+type Tab = "score" | "evidence" | "personas" | "brief" | "outreach" | "actions";
 
 export function AccountDetail() {
   const { state } = useWorkflow();
@@ -28,6 +29,7 @@ export function AccountDetail() {
     { id: "personas", label: "Personas", count: account.personas.length },
     { id: "brief", label: "Brief" },
     { id: "outreach", label: "Outreach" },
+    { id: "actions", label: "Actions" },
   ];
 
   return (
@@ -86,6 +88,7 @@ export function AccountDetail() {
         {activeTab === "personas" && <PersonaList account={account} />}
         {activeTab === "brief" && <OpportunityBrief account={account} />}
         {activeTab === "outreach" && <OutreachPackView account={account} />}
+        {activeTab === "actions" && <CampaignActions account={account} />}
       </div>
     </div>
   );

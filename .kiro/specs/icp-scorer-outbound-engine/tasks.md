@@ -46,7 +46,7 @@
 ---
 
 ### Task 4: Workflow State Machine & Context
-- [-] 1. Create `src/context/WorkflowContext.tsx` with useReducer managing full WorkflowState
+- [x] 1. Create `src/context/WorkflowContext.tsx` with useReducer managing full WorkflowState
 - [~] 2. Implement workflow stages: idle → analyzing_icp → awaiting_plan_approval → discovering → collecting_evidence → enriching → scoring → matching_personas → generating_brief → generating_outreach → ready → feedback → failed
 - [~] 3. Implement mode toggle (live/demo) that switches provider source
 - [~] 4. Implement activity log: append entries (max 280 chars) within 2 seconds of stage completion
@@ -59,7 +59,7 @@
 ---
 
 ### Task 5: Three-Panel Dashboard Layout
-- [~] 1. Create `src/components/layout/ThreePanelLayout.tsx` — responsive CSS grid: left (ICP/plan), center (accounts), right (detail)
+- [x] 1. Create `src/components/layout/ThreePanelLayout.tsx` — responsive CSS grid: left (ICP/plan), center (accounts), right (detail)
 - [~] 2. Create `src/components/layout/BottomPanel.tsx` — agent activity log with scrollable entries, timestamps
 - [~] 3. Create `src/components/shared/DemoModeBadge.tsx` — persistent badge when Demo_Mode active
 - [~] 4. Create `src/components/shared/ScoreBadge.tsx` — color-coded: green ≥80, yellow 60-79, gray <60
@@ -72,7 +72,7 @@
 ---
 
 ### Task 6: Left Panel — ICP Input & Search Plan
-- [~] 1. Create `src/components/left-panel/ICPInput.tsx` — textarea (20-2000 chars), validation, submit button
+- [-] 1. Create `src/components/left-panel/ICPInput.tsx` — textarea (20-2000 chars), validation, submit button
 - [~] 2. Add 2-3 preset ICP examples the presenter can click to populate input (e.g., "Marketplaces and SaaS platforms expanding internationally with complex payouts, refunds, reconciliation, and finance operations")
 - [~] 3. Create `src/components/left-panel/SearchPlanEditor.tsx` — editable keywords, company types, geo filters, exclusions with approve/edit actions
 - [~] 4. Create `src/components/left-panel/ModeToggle.tsx` — Live/Demo switch with visual indicator
