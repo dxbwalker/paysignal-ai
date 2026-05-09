@@ -122,26 +122,34 @@ export function ICPInput() {
 
         // Auto-proceed to discovery
         dispatch({ type: "SET_STAGE", stage: "discovering", status: "running" });
-        addLog("discovering", "Searching LinkedIn via Apify...");
+        addLog("discovering", "Searching LinkedIn via Apify (this may take 30-60s)...");
 
-        const discoverRes = await fetch("/api/discover-accounts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ searchPlan: data.searchPlan }),
-        });
-        const discoverData = await discoverRes.json();
+        try {
+          const discoverRes = await fetch("/api/discover-accounts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ searchPlan: data.searchPlan }),
+          });
+          const discoverData = await discoverRes.json();
 
-        dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
-        addLog("discovering", discoverData.logEntry || `Found ${discoverData.accounts?.length || 0} accounts.`);
+          dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
+          addLog("discovering", discoverData.logEntry || `Found ${discoverData.accounts?.length || 0} accounts.`);
 
-        // Score and finalize
-        dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "completed" });
-        dispatch({ type: "SET_STAGE", stage: "scoring", status: "completed" });
-        dispatch({ type: "SET_STAGE", stage: "generating_outreach", status: "completed" });
-        dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
+          // Score and finalize
+          dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "completed" });
+          dispatch({ type: "SET_STAGE", stage: "scoring", status: "completed" });
+          dispatch({ type: "SET_STAGE", stage: "generating_outreach", status: "completed" });
+          dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
 
-        const accounts = discoverData.accounts || [];
-        dispatch({ type: "SET_ACCOUNTS", accounts });
+          const accounts = discoverData.accounts || [];
+          dispatch({ type: "SET_ACCOUNTS", accounts });
+        } catch (discoverErr) {
+          // Discovery failed — fall back to demo
+          dispatch({ type: "SET_STAGE", stage: "discovering", status: "warning" });
+          addLog("discovering", "Live discovery failed — loading demo accounts as fallback.");
+          dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
+          dispatch({ type: "SET_ACCOUNTS", accounts: getDemoAccounts() });
+        }
 
       } catch (err) {
         // Fallback to local parser + demo data on network error
