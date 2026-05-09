@@ -662,13 +662,13 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The right panel still feels like a collection of tabs. The product's most valuable output is the agent's recommended plan, so it should be the default experience.
 
-- [ ] 1. Change default selected tab in `AccountDetail.tsx` from `score` to `agent_plan` when `account.outreachStrategy` exists (or when `generateStrategy(account)` returns non-null)
-- [ ] 2. If strategy does not exist (score <60), fall back to `brief` as default tab
-- [ ] 3. Rename visible tab label from "Agent Plan" to "Plan" for simplicity
-- [ ] 4. Reorder tabs to: Plan | Brief | Evidence | Score | Personas | Actions
-- [ ] 5. Make Plan tab visually prominent with a subtle accent underline and icon
-- [ ] 6. Add a short subtitle under the tab row: "Recommended buyer, channel, sequence, and next action"
-- [ ] 7. Ensure keyboard shortcuts and Presentation Mode still navigate correctly after tab order change
+- [x] 1. Change default selected tab in `AccountDetail.tsx` from `score` to `agent_plan` when `account.outreachStrategy` exists (or when `generateStrategy(account)` returns non-null)
+- [x] 2. If strategy does not exist (score <60), fall back to `brief` as default tab
+- [x] 3. Rename visible tab label from "Agent Plan" to "Plan" for simplicity
+- [x] 4. Reorder tabs to: Plan | Brief | Evidence | Score | Personas | Actions
+- [x] 5. Make Plan tab visually prominent with a subtle accent underline and icon
+- [x] 6. Add a short subtitle under the tab row: "Recommended buyer, channel, sequence, and next action"
+- [x] 7. Ensure keyboard shortcuts and Presentation Mode still navigate correctly after tab order change
 
 **Acceptance criteria:**
 - Selecting an outreach-ready account opens directly on the Plan tab
@@ -684,14 +684,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The left panel remains too heavy after the search plan is approved. It takes attention away from the accounts and agent recommendation.
 
-- [ ] 1. Add `searchPlanCollapsed: boolean` to workflow state (or local component state)
-- [ ] 2. After Search Plan approval (workflow reaches `discovering` stage or later), show compact summary mode by default
-- [ ] 3. Compact summary shows only: ICP title/summary (max 2 lines), 3-5 key chips (business model, geography, top personas), Demo/Live mode badge, "Edit Plan" button
-- [ ] 4. Hide detailed keyword/company/geography/exclusion sections behind "Edit Plan"
-- [ ] 5. When "Edit Plan" is clicked, expand full SearchPlanEditor
-- [ ] 6. Add "Collapse Plan" button to return to compact mode
-- [ ] 7. Persist collapsed state in localStorage
-- [ ] 8. In Presentation Mode, force compact summary mode
+- [x] 1. Add `searchPlanCollapsed: boolean` to workflow state (or local component state)
+- [x] 2. After Search Plan approval (workflow reaches `discovering` stage or later), show compact summary mode by default
+- [x] 3. Compact summary shows only: ICP title/summary (max 2 lines), 3-5 key chips (business model, geography, top personas), Demo/Live mode badge, "Edit Plan" button
+- [x] 4. Hide detailed keyword/company/geography/exclusion sections behind "Edit Plan"
+- [x] 5. When "Edit Plan" is clicked, expand full SearchPlanEditor
+- [x] 6. Add "Collapse Plan" button to return to compact mode
+- [x] 7. Persist collapsed state in localStorage
+- [x] 8. In Presentation Mode, force compact summary mode
 
 **Acceptance criteria:**
 - After search approval, the left panel becomes visually quiet
@@ -707,14 +707,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The bottom stream currently occupies too much screen space and feels like a log panel. It should support the story, not dominate it.
 
-- [ ] 1. Make Agent Decision Stream collapsed/compact by default after workflow reaches `ready`
-- [ ] 2. Default compact height: 72–96px (show only 3 most important decisions)
-- [ ] 3. Add "Expand stream" / "Collapse stream" control
-- [ ] 4. In compact mode, hide timestamps or move them to hover state
-- [ ] 5. In expanded mode, show full decision history
-- [ ] 6. Prioritise entries with importance: `key` and `warning`
-- [ ] 7. Rewrite routine entries to be shorter and more commercial
-- [ ] 8. Remove excessive row spacing and reduce visual borders
+- [x] 1. Make Agent Decision Stream collapsed/compact by default after workflow reaches `ready`
+- [x] 2. Default compact height: 72–96px (show only 3 most important decisions)
+- [x] 3. Add "Expand stream" / "Collapse stream" control
+- [x] 4. In compact mode, hide timestamps or move them to hover state
+- [x] 5. In expanded mode, show full decision history
+- [x] 6. Prioritise entries with importance: `key` and `warning`
+- [x] 7. Rewrite routine entries to be shorter and more commercial
+- [x] 8. Remove excessive row spacing and reduce visual borders
 
 **Acceptance criteria:**
 - Bottom panel feels secondary by default
@@ -730,14 +730,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The selected account does not have a strong enough focal point. The right panel needs a premium hero section that immediately explains the opportunity.
 
-- [ ] 1. Create `src/components/right-panel/SelectedAccountHero.tsx`
-- [ ] 2. Place it at the top of the right panel, above tabs
-- [ ] 3. Hero includes: company name, score (arc or ring), confidence, one-line opportunity hypothesis, recommended persona, recommended channel, next best action
-- [ ] 4. Use clean two-column layout: Left (account identity + why-now sentence), Right (score arc + next-best-action CTA)
-- [ ] 5. Show only one primary CTA: "Approve Plan" or "Review Plan" or "Research Further"
-- [ ] 6. Remove duplicate score/action information from lower sections where possible
-- [ ] 7. Use restrained glow only for the selected account hero / primary CTA
-- [ ] 8. Make hero responsive at smaller panel widths
+- [x] 1. Create `src/components/right-panel/SelectedAccountHero.tsx`
+- [x] 2. Place it at the top of the right panel, above tabs
+- [x] 3. Hero includes: company name, score (arc or ring), confidence, one-line opportunity hypothesis, recommended persona, recommended channel, next best action
+- [x] 4. Use clean two-column layout: Left (account identity + why-now sentence), Right (score arc + next-best-action CTA)
+- [x] 5. Show only one primary CTA: "Approve Plan" or "Review Plan" or "Research Further"
+- [x] 6. Remove duplicate score/action information from lower sections where possible
+- [x] 7. Use restrained glow only for the selected account hero / primary CTA
+- [x] 8. Make hero responsive at smaller panel widths
 
 **Acceptance criteria:**
 - User immediately understands why the account matters
@@ -754,14 +754,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** Evidence cards are too dense and make the right panel feel like documentation. Evidence should prove the recommendation without overwhelming the user.
 
-- [ ] 1. Show only top 3 evidence cards by default (ranked: high confidence first, observed before inferred, score-contributing dimensions first)
-- [ ] 2. Add "Show all evidence" button to reveal remaining cards
-- [ ] 3. Redesign card layout: signal title, one-sentence evidence summary, confidence badge, suggested outreach angle
-- [ ] 4. Move source, reliability, synthetic label, and inference explanation into a collapsed "Details" row
-- [ ] 5. Reduce visible chips to maximum 2 per card: evidence type + confidence
-- [ ] 6. Replace long signal labels like `hiring_payment_ops` with readable titles like "Payment Ops Hiring"
-- [ ] 7. Add clickable "Used in plan" indicator for evidence referenced by Agent Plan
-- [ ] 8. Add smooth expand/collapse animation
+- [x] 1. Show only top 3 evidence cards by default (ranked: high confidence first, observed before inferred, score-contributing dimensions first)
+- [x] 2. Add "Show all evidence" button to reveal remaining cards
+- [x] 3. Redesign card layout: signal title, one-sentence evidence summary, confidence badge, suggested outreach angle
+- [x] 4. Move source, reliability, synthetic label, and inference explanation into a collapsed "Details" row
+- [x] 5. Reduce visible chips to maximum 2 per card: evidence type + confidence
+- [x] 6. Replace long signal labels like `hiring_payment_ops` with readable titles like "Payment Ops Hiring"
+- [x] 7. Add clickable "Used in plan" indicator for evidence referenced by Agent Plan
+- [x] 8. Add smooth expand/collapse animation
 
 **Acceptance criteria:**
 - Evidence tab is readable in less than 10 seconds
@@ -777,12 +777,12 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The account list still feels like a dense operational table. It should feel like a ranked opportunity feed.
 
-- [ ] 1. Keep Top Opportunity hero, but simplify content: company, score, why now, recommended persona/channel, primary CTA "Review Plan"
-- [ ] 2. Make non-selected account rows more compact: company name, score, business model/location, why-now one-liner, next action badge
-- [ ] 3. Remove mini 5-bar score breakdown from normal rows (show only on Top Opportunity card, selected account, or hover)
-- [ ] 4. Reduce filter visual weight — move less-used filters into "More" if space is tight
-- [ ] 5. Make selected account obvious with left accent and subtle glow
-- [ ] 6. Ensure no row feels overloaded with metadata
+- [x] 1. Keep Top Opportunity hero, but simplify content: company, score, why now, recommended persona/channel, primary CTA "Review Plan"
+- [x] 2. Make non-selected account rows more compact: company name, score, business model/location, why-now one-liner, next action badge
+- [x] 3. Remove mini 5-bar score breakdown from normal rows (show only on Top Opportunity card, selected account, or hover)
+- [x] 4. Reduce filter visual weight — move less-used filters into "More" if space is tight
+- [x] 5. Make selected account obvious with left accent and subtle glow
+- [x] 6. Ensure no row feels overloaded with metadata
 
 **Acceptance criteria:**
 - Account list is scannable
@@ -798,14 +798,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** Too many pills and chips make the product feel busy. Metadata should not compete with recommendations.
 
-- [ ] 1. Audit all visible chips and badges across the app
-- [ ] 2. Keep only these badges visible by default: Score, Confidence, Recommended action, Evidence type (where needed)
-- [ ] 3. Move secondary metadata into hover states, collapsible details, or muted text
-- [ ] 4. Standardise badge sizes: primary badge, secondary badge, muted metadata chip
-- [ ] 5. Reduce colour saturation for secondary chips
-- [ ] 6. Use neutral text for metadata like "synthetic", "source", and "reliability"
-- [ ] 7. Remove duplicate badges where same information appears in nearby text
-- [ ] 8. Keep red only for real negative states: suppressed, error, deprioritized
+- [x] 1. Audit all visible chips and badges across the app
+- [x] 2. Keep only these badges visible by default: Score, Confidence, Recommended action, Evidence type (where needed)
+- [x] 3. Move secondary metadata into hover states, collapsible details, or muted text
+- [x] 4. Standardise badge sizes: primary badge, secondary badge, muted metadata chip
+- [x] 5. Reduce colour saturation for secondary chips
+- [x] 6. Use neutral text for metadata like "synthetic", "source", and "reliability"
+- [x] 7. Remove duplicate badges where same information appears in nearby text
+- [x] 8. Keep red only for real negative states: suppressed, error, deprioritized
 
 **Acceptance criteria:**
 - UI looks calmer
@@ -821,14 +821,14 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The Agent Plan is directionally right, but it can still become too complex. It should feel like the agent has already made the hard choices.
 
-- [ ] 1. In `AgentOutreachView`, put NextBestAction above the timeline
-- [ ] 2. Show only the first sequence step expanded by default; collapse later steps
-- [ ] 3. Add a short agent rationale sentence above the timeline
-- [ ] 4. Reduce visible action buttons to: "Approve Plan", "Copy Step", "Regenerate"
-- [ ] 5. Move "Change Persona" and "Change Angle" into an overflow menu or secondary controls
-- [ ] 6. Keep Risks & Fallback collapsed by default
-- [ ] 7. Show evidence chips inline under each message, max 3 chips
-- [ ] 8. Add "Show all evidence used" if more than 3 evidence references exist
+- [x] 1. In `AgentOutreachView`, put NextBestAction above the timeline
+- [x] 2. Show only the first sequence step expanded by default; collapse later steps
+- [x] 3. Add a short agent rationale sentence above the timeline
+- [x] 4. Reduce visible action buttons to: "Approve Plan", "Copy Step", "Regenerate"
+- [x] 5. Move "Change Persona" and "Change Angle" into an overflow menu or secondary controls
+- [x] 6. Keep Risks & Fallback collapsed by default
+- [x] 7. Show evidence chips inline under each message, max 3 chips
+- [x] 8. Add "Show all evidence used" if more than 3 evidence references exist
 
 **Acceptance criteria:**
 - Agent Plan feels guided, not like a configuration screen
@@ -844,13 +844,13 @@ type OutreachSequenceStepStatus =
 
 **Problem:** The screen feels dense partly because font sizes, line-height, and spacing are too compact.
 
-- [ ] 1. Increase main content font size slightly where readability is poor (generated messages, evidence summaries)
-- [ ] 2. Increase line-height for generated content (1.6–1.7)
-- [ ] 3. Use stronger heading hierarchy: page heading → account name → card title → metadata
-- [ ] 4. Add more vertical spacing between right-panel sections
-- [ ] 5. Reduce excessive horizontal borders — replace some with spacing and background contrast
-- [ ] 6. Ensure UI is readable on projector / large screen
-- [ ] 7. Avoid tiny text below 12px except for timestamps or muted metadata
+- [x] 1. Increase main content font size slightly where readability is poor (generated messages, evidence summaries)
+- [x] 2. Increase line-height for generated content (1.6–1.7)
+- [x] 3. Use stronger heading hierarchy: page heading → account name → card title → metadata
+- [x] 4. Add more vertical spacing between right-panel sections
+- [x] 5. Reduce excessive horizontal borders — replace some with spacing and background contrast
+- [x] 6. Ensure UI is readable on projector / large screen
+- [x] 7. Avoid tiny text below 12px except for timestamps or muted metadata
 
 **Acceptance criteria:**
 - UI feels less cramped
@@ -864,18 +864,18 @@ type OutreachSequenceStepStatus =
 
 ### Task 38: Final Demo Polish and Regression Check
 
-- [ ] 1. Run full demo in Demo Mode with no API keys
-- [ ] 2. Verify left panel compact mode after Search Plan approval
-- [ ] 3. Verify selected account opens on Plan tab
-- [ ] 4. Verify Top Opportunity card is visually strong
-- [ ] 5. Verify bottom stream is compact by default
-- [ ] 6. Verify evidence shows top 3 first and expands correctly
-- [ ] 7. Verify Agent Plan has one obvious next action
-- [ ] 8. Verify Reject TinyBooks still works
-- [ ] 9. Verify Presentation Mode still works
-- [ ] 10. Verify MongoDB disabled still works
-- [ ] 11. Verify MongoDB enabled still saves/loads if configured
-- [ ] 12. Run: `npm run typecheck`, `npm run build`
+- [x] 1. Run full demo in Demo Mode with no API keys
+- [x] 2. Verify left panel compact mode after Search Plan approval
+- [x] 3. Verify selected account opens on Plan tab
+- [x] 4. Verify Top Opportunity card is visually strong
+- [x] 5. Verify bottom stream is compact by default
+- [x] 6. Verify evidence shows top 3 first and expands correctly
+- [x] 7. Verify Agent Plan has one obvious next action
+- [x] 8. Verify Reject TinyBooks still works
+- [x] 9. Verify Presentation Mode still works
+- [x] 10. Verify MongoDB disabled still works
+- [x] 11. Verify MongoDB enabled still saves/loads if configured
+- [x] 12. Run: `npm run typecheck`, `npm run build`
 
 **Acceptance criteria:**
 - Demo feels simpler and more premium than before
