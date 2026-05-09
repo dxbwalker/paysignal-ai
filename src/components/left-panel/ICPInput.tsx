@@ -135,13 +135,43 @@ export function ICPInput() {
           dispatch({ type: "SET_STAGE", stage: "discovering", status: "completed" });
           addLog("discovering", discoverData.logEntry || `Found ${discoverData.accounts?.length || 0} accounts.`);
 
-          // Score and finalize
+          let accounts = discoverData.accounts || [];
+
+          // Collect evidence
+          dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "running" });
+          try {
+            const evidenceRes = await fetch("/api/collect-evidence", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ accounts }),
+            });
+            const evidenceData = await evidenceRes.json();
+            if (evidenceRes.ok) {
+              accounts = evidenceData.accounts;
+              addLog("collecting_evidence", evidenceData.logEntry || "Evidence collected.");
+            }
+          } catch { /* continue without evidence */ }
           dispatch({ type: "SET_STAGE", stage: "collecting_evidence", status: "completed" });
+
+          // Score accounts
+          dispatch({ type: "SET_STAGE", stage: "scoring", status: "running" });
+          try {
+            const scoreRes = await fetch("/api/score-accounts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ accounts }),
+            });
+            const scoreData = await scoreRes.json();
+            if (scoreRes.ok) {
+              accounts = scoreData.accounts;
+              addLog("scoring", scoreData.logEntry || "Accounts scored.");
+            }
+          } catch { /* continue without scoring */ }
           dispatch({ type: "SET_STAGE", stage: "scoring", status: "completed" });
+
           dispatch({ type: "SET_STAGE", stage: "generating_outreach", status: "completed" });
           dispatch({ type: "SET_STAGE", stage: "ready", status: "completed" });
 
-          const accounts = discoverData.accounts || [];
           dispatch({ type: "SET_ACCOUNTS", accounts });
         } catch (discoverErr) {
           // Discovery failed — fall back to demo

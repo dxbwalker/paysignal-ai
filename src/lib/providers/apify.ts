@@ -54,9 +54,12 @@ export function createApifyProvider(): ApifyProvider {
         takePages: 1,
       };
 
-      // Add location filter
-      if (searchPlan.geographicFilters.length > 0) {
-        actorInput.locations = searchPlan.geographicFilters;
+      // Add location filter — skip vague terms like "International", "Global"
+      const validLocations = searchPlan.geographicFilters.filter(
+        (loc) => !/international|global|cross-border|remote/i.test(loc)
+      );
+      if (validLocations.length > 0) {
+        actorInput.locations = validLocations;
       }
 
       const controller = new AbortController();
